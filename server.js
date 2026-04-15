@@ -1,128 +1,24 @@
 const express = require("express");
 const crypto = require("crypto");
+const db = require("./db");
 
 const app = express();
 const port = process.env.PORT || 3000;
+const sessions = new Map();
 
 app.use(express.json());
 app.use(express.static(__dirname));
-
-let nextUserId = 3;
-let nextItemId = 7;
-const sessions = new Map();
 
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-const users = [
-  {
-    id: 1,
-    login: "admin",
-    passwordHash: hashPassword("admin123"),
-    phone: "375291112233",
-    role: "admin",
-  },
-  {
-    id: 2,
-    login: "foodlover",
-    passwordHash: hashPassword("food1234"),
-    phone: "375447778899",
-    role: "user",
-  },
-];
-
-const items = [
-  {
-    id: 1,
-    title: "Поке с лососем",
-    price: 24.9,
-    rating: 4.9,
-    reviews: 182,
-    image:
-      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=900&q=80",
-    category: "Поке",
-    restaurant: "FlashFood Kitchen",
-    deliveryTime: "25-35 мин",
-    popular: true,
-    description: "Свежий лосось, рис, авокадо, эдамаме и фирменный цитрусовый соус.",
-  },
-  {
-    id: 2,
-    title: "Бургер Black Beef",
-    price: 19.5,
-    rating: 4.8,
-    reviews: 241,
-    image:
-      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80",
-    category: "Бургеры",
-    restaurant: "Street Grill",
-    deliveryTime: "20-30 мин",
-    popular: true,
-    description: "Сочная говяжья котлета, чеддер, соус барбекю и хрустящий лук.",
-  },
-  {
-    id: 3,
-    title: "Суши-сет Tokyo",
-    price: 31,
-    rating: 4.9,
-    reviews: 128,
-    image:
-      "https://images.unsplash.com/photo-1579871494447-9811cf80d66c?auto=format&fit=crop&w=900&q=80",
-    category: "Суши",
-    restaurant: "Tokyo House",
-    deliveryTime: "35-45 мин",
-    popular: true,
-    description: "Роллы с лососем, тунцом, креветкой и фирменными соусами.",
-  },
-  {
-    id: 4,
-    title: "Паста Alfredo",
-    price: 21.4,
-    rating: 4.7,
-    reviews: 94,
-    image:
-      "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=900&q=80",
-    category: "Паста",
-    restaurant: "Pasta Fresca",
-    deliveryTime: "30-40 мин",
-    popular: false,
-    description: "Тальятелле в сливочном соусе с курицей и пармезаном.",
-  },
-  {
-    id: 5,
-    title: "Пицца Маргарита",
-    price: 18.8,
-    rating: 4.6,
-    reviews: 116,
-    image:
-      "https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?auto=format&fit=crop&w=900&q=80",
-    category: "Пицца",
-    restaurant: "Ciao Bella",
-    deliveryTime: "25-35 мин",
-    popular: true,
-    description: "Томатный соус, моцарелла и свежий базилик на тонком тесте.",
-  },
-  {
-    id: 6,
-    title: "Боул Green Detox",
-    price: 17.2,
-    rating: 4.8,
-    reviews: 76,
-    image:
-      "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
-    category: "Салаты",
-    restaurant: "Green Point",
-    deliveryTime: "15-25 мин",
-    popular: false,
-    description: "Киноа, брокколи, огурец, шпинат, авокадо и кунжутный соус.",
-  },
-];
-
 function getSafeUser(user) {
   return {
     id: user.id,
-    login: user.login,
+    email: user.email,
+    name: user.name,
+    createdAt: user.createdAt,
     phone: user.phone,
     role: user.role,
   };
@@ -156,22 +52,44 @@ function clearSession(req, res) {
   res.setHeader("Set-Cookie", "flashfood_sid=; HttpOnly; Path=/; Max-Age=0; SameSite=Lax");
 }
 
-function getCurrentUser(req) {
+async function findUserById(id) {
+  const [rows] = await db.query(
+    "SELECT id, email, name, phone, role, createdAt FROM users WHERE id = ? LIMIT 1",
+    [id]
+  );
+  return rows[0] || null;
+}
+
+async function getCurrentUser(req) {
   const cookies = parseCookies(req.headers.cookie || "");
   const sessionId = cookies.flashfood_sid;
+
   if (!sessionId || !sessions.has(sessionId)) {
     return null;
   }
-  return users.find((user) => user.id === sessions.get(sessionId)) || null;
+
+  const userId = sessions.get(sessionId);
+  const user = await findUserById(userId);
+
+  if (!user) {
+    sessions.delete(sessionId);
+    return null;
+  }
+
+  return user;
 }
 
-function requireAuth(req, res, next) {
-  const user = getCurrentUser(req);
-  if (!user) {
-    return res.status(401).json({ error: "Требуется авторизация" });
+async function requireAuth(req, res, next) {
+  try {
+    const user = await getCurrentUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Требуется авторизация" });
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
   }
-  req.user = user;
-  next();
 }
 
 function validatePhone(phone) {
@@ -190,13 +108,28 @@ function validatePhone(phone) {
   return null;
 }
 
-function validateRegisterPayload(body) {
-  const login = String(body.login || "").trim();
+function validateEmail(email) {
+  if (!email) {
+    return "Укажите email";
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "Укажите корректный email";
+  }
+  return null;
+}
+
+async function validateRegisterPayload(body) {
+  const email = String(body.email || "").trim().toLowerCase();
+  const name = String(body.name || "").trim();
   const password = String(body.password || "");
   const phone = String(body.phone || "").trim();
 
-  if (login.length < 3) {
-    return "Логин должен содержать минимум 3 символа";
+  const emailError = validateEmail(email);
+  if (emailError) {
+    return emailError;
+  }
+  if (name.length < 2) {
+    return "Имя должно содержать минимум 2 символа";
   }
   if (password.length < 6) {
     return "Пароль должен содержать минимум 6 символов";
@@ -206,12 +139,19 @@ function validateRegisterPayload(body) {
   if (phoneError) {
     return phoneError;
   }
-  if (users.some((user) => user.login.toLowerCase() === login.toLowerCase())) {
-    return "Такой логин уже существует";
+
+  const [emailRows] = await db.query("SELECT id FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1", [
+    email,
+  ]);
+  if (emailRows.length) {
+    return "Такой email уже существует";
   }
-  if (users.some((user) => user.phone === phone)) {
+
+  const [phoneRows] = await db.query("SELECT id FROM users WHERE phone = ? LIMIT 1", [phone]);
+  if (phoneRows.length) {
     return "Этот номер телефона уже зарегистрирован";
   }
+
   return null;
 }
 
@@ -225,7 +165,11 @@ function validateItemPayload(body) {
   const price = Number(body.price);
   const rating = body.rating === undefined ? 4.7 : Number(body.rating);
   const reviews = body.reviews === undefined ? 0 : Number(body.reviews);
-  const popular = Boolean(body.popular);
+  const popular =
+    body.popular === true ||
+    body.popular === "true" ||
+    body.popular === 1 ||
+    body.popular === "1";
 
   if (title.length < 2) {
     return { error: "Название блюда должно содержать минимум 2 символа" };
@@ -256,65 +200,91 @@ function validateItemPayload(body) {
       price: Number(price.toFixed(2)),
       rating: Number(rating.toFixed(1)),
       reviews: Math.round(reviews),
-      popular,
+      popular: popular ? 1 : 0,
     },
   };
 }
 
-app.post("/api/auth/register", async (req, res) => {
-  const error = validateRegisterPayload(req.body);
-  if (error) {
-    return res.status(400).json({ error });
-  }
-
-  const login = String(req.body.login).trim();
-  const phone = String(req.body.phone).trim();
-  const passwordHash = hashPassword(String(req.body.password));
-
-  const user = {
-    id: nextUserId++,
-    login,
-    phone,
-    passwordHash,
-    role: "user",
+function normalizeItem(item) {
+  return {
+    ...item,
+    price: Number(item.price),
+    rating: Number(item.rating),
+    reviews: Number(item.reviews),
+    popular: Boolean(item.popular),
   };
+}
 
-  users.push(user);
-  createSession(res, user.id);
+app.post("/api/auth/register", async (req, res, next) => {
+  try {
+    const error = await validateRegisterPayload(req.body);
+    if (error) {
+      return res.status(400).json({ error });
+    }
 
-  res.status(201).json({
-    message: "Регистрация прошла успешно",
-    user: getSafeUser(user),
-  });
+    const email = String(req.body.email).trim().toLowerCase();
+    const name = String(req.body.name).trim();
+    const phone = String(req.body.phone).trim();
+    const passwordHash = hashPassword(String(req.body.password));
+    const role = "user";
+
+    const [result] = await db.query(
+      "INSERT INTO users (email, passwordHash, name, createdAt, phone, role) VALUES (?, ?, ?, NOW(), ?, ?)",
+      [email, passwordHash, name, phone, role]
+    );
+
+    const [rows] = await db.query(
+      "SELECT id, email, name, phone, role, createdAt FROM users WHERE id = ? LIMIT 1",
+      [result.insertId]
+    );
+
+    createSession(res, result.insertId);
+    res.status(201).json({
+      message: "Регистрация прошла успешно",
+      user: getSafeUser(rows[0]),
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.post("/api/auth/login", async (req, res) => {
-  const login = String(req.body.login || "").trim();
-  const password = String(req.body.password || "");
-  const user = users.find((item) => item.login.toLowerCase() === login.toLowerCase());
+app.post("/api/auth/login", async (req, res, next) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const password = String(req.body.password || "");
 
-  if (!user) {
-    return res.status(404).json({ error: "Пользователь не найден" });
+    const [rows] = await db.query("SELECT * FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1", [email]);
+    const user = rows[0];
+
+    if (!user) {
+      return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    const isPasswordValid = hashPassword(password) === user.passwordHash;
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Неверный пароль" });
+    }
+
+    createSession(res, user.id);
+    res.json({
+      message: "Вход выполнен",
+      user: getSafeUser(user),
+    });
+  } catch (error) {
+    next(error);
   }
-
-  const isPasswordValid = hashPassword(password) === user.passwordHash;
-  if (!isPasswordValid) {
-    return res.status(400).json({ error: "Неверный пароль" });
-  }
-
-  createSession(res, user.id);
-  res.json({
-    message: "Вход выполнен",
-    user: getSafeUser(user),
-  });
 });
 
-app.get("/api/auth/me", (req, res) => {
-  const user = getCurrentUser(req);
-  if (!user) {
-    return res.status(401).json({ error: "Пользователь не авторизован" });
+app.get("/api/auth/me", async (req, res, next) => {
+  try {
+    const user = await getCurrentUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "Пользователь не авторизован" });
+    }
+    res.json(getSafeUser(user));
+  } catch (error) {
+    next(error);
   }
-  res.json(getSafeUser(user));
 });
 
 app.post("/api/auth/logout", (req, res) => {
@@ -322,94 +292,188 @@ app.post("/api/auth/logout", (req, res) => {
   res.json({ message: "Вы вышли из системы" });
 });
 
-app.get("/api/items", (req, res) => {
-  const { popular, search, category } = req.query;
-  let result = [...items];
+app.get("/api/items", async (req, res, next) => {
+  try {
+    const { popular, search, category } = req.query;
+    const conditions = [];
+    const params = [];
 
-  if (popular === "true") {
-    result = result.filter((item) => item.popular);
-  }
-  if (category) {
-    const categoryQuery = String(category).trim().toLowerCase();
-    result = result.filter((item) => item.category.toLowerCase() === categoryQuery);
-  }
-  if (search) {
-    const searchQuery = String(search).trim().toLowerCase();
-    result = result.filter((item) => {
-      return (
-        item.title.toLowerCase().includes(searchQuery) ||
-        item.restaurant.toLowerCase().includes(searchQuery) ||
-        item.category.toLowerCase().includes(searchQuery)
+    if (popular === "true") {
+      conditions.push("popular = ?");
+      params.push(1);
+    }
+
+    if (category) {
+      conditions.push("LOWER(category) = LOWER(?)");
+      params.push(String(category).trim());
+    }
+
+    if (search) {
+      conditions.push(
+        "(LOWER(title) LIKE LOWER(?) OR LOWER(restaurant) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?))"
       );
-    });
-  }
+      const pattern = `%${String(search).trim()}%`;
+      params.push(pattern, pattern, pattern);
+    }
 
-  res.json(result);
+    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const [rows] = await db.query(`SELECT * FROM items ${whereClause} ORDER BY id DESC`, params);
+
+    res.json(rows.map(normalizeItem));
+  } catch (error) {
+    next(error);
+  }
 });
 
-app.get("/api/items/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const item = items.find((entry) => entry.id === id);
+app.get("/api/items/:id", async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [id]);
+    const item = rows[0];
 
-  if (!item) {
-    return res.status(404).json({ error: "Блюдо не найдено" });
+    if (!item) {
+      return res.status(404).json({ error: "Блюдо не найдено" });
+    }
+
+    res.json(normalizeItem(item));
+  } catch (error) {
+    next(error);
   }
-
-  res.json(item);
 });
 
-app.post("/api/items", requireAuth, (req, res) => {
-  const validation = validateItemPayload(req.body);
-  if (validation.error) {
-    return res.status(400).json({ error: validation.error });
+app.post("/api/items", requireAuth, async (req, res, next) => {
+  try {
+    const validation = validateItemPayload(req.body);
+    if (validation.error) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    const item = validation.value;
+    const [result] = await db.query(
+      `INSERT INTO items
+      (title, price, rating, reviews, image, category, restaurant, deliveryTime, popular, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        item.title,
+        item.price,
+        item.rating,
+        item.reviews,
+        item.image,
+        item.category,
+        item.restaurant,
+        item.deliveryTime,
+        item.popular,
+        item.description,
+      ]
+    );
+
+    const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [result.insertId]);
+    res.status(201).json(normalizeItem(rows[0]));
+  } catch (error) {
+    next(error);
   }
-
-  const newItem = {
-    id: nextItemId++,
-    ...validation.value,
-  };
-
-  items.unshift(newItem);
-  res.status(201).json(newItem);
 });
 
-app.put("/api/items/:id", requireAuth, (req, res) => {
-  const id = Number(req.params.id);
-  const itemIndex = items.findIndex((entry) => entry.id === id);
+app.put("/api/items/:id", requireAuth, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const validation = validateItemPayload(req.body);
 
-  if (itemIndex === -1) {
-    return res.status(404).json({ error: "Блюдо не найдено" });
+    if (validation.error) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    const [existingRows] = await db.query("SELECT id FROM items WHERE id = ? LIMIT 1", [id]);
+    if (!existingRows.length) {
+      return res.status(404).json({ error: "Блюдо не найдено" });
+    }
+
+    const item = validation.value;
+    await db.query(
+      `UPDATE items SET
+        title = ?,
+        price = ?,
+        rating = ?,
+        reviews = ?,
+        image = ?,
+        category = ?,
+        restaurant = ?,
+        deliveryTime = ?,
+        popular = ?,
+        description = ?
+      WHERE id = ?`,
+      [
+        item.title,
+        item.price,
+        item.rating,
+        item.reviews,
+        item.image,
+        item.category,
+        item.restaurant,
+        item.deliveryTime,
+        item.popular,
+        item.description,
+        id,
+      ]
+    );
+
+    const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [id]);
+    res.json(normalizeItem(rows[0]));
+  } catch (error) {
+    next(error);
   }
-
-  const validation = validateItemPayload(req.body);
-  if (validation.error) {
-    return res.status(400).json({ error: validation.error });
-  }
-
-  items[itemIndex] = {
-    id,
-    ...validation.value,
-  };
-
-  res.json(items[itemIndex]);
 });
 
-app.delete("/api/items/:id", requireAuth, (req, res) => {
-  const id = Number(req.params.id);
-  const itemIndex = items.findIndex((entry) => entry.id === id);
+app.delete("/api/items/:id", requireAuth, async (req, res, next) => {
+  try {
+    const id = Number(req.params.id);
+    const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [id]);
+    const item = rows[0];
 
-  if (itemIndex === -1) {
-    return res.status(404).json({ error: "Блюдо не найдено" });
+    if (!item) {
+      return res.status(404).json({ error: "Блюдо не найдено" });
+    }
+
+    await db.query("DELETE FROM items WHERE id = ?", [id]);
+    res.json({ message: "Блюдо удалено", item: normalizeItem(item) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.use((error, req, res, next) => {
+  console.error("Server error:", error);
+
+  if (error && error.code === "ER_BAD_DB_ERROR") {
+    return res.status(500).json({ error: "База данных food_app не найдена" });
   }
 
-  const [removed] = items.splice(itemIndex, 1);
-  res.json({ message: "Блюдо удалено", item: removed });
+  if (error && error.code === "ECONNREFUSED") {
+    return res.status(500).json({ error: "Не удалось подключиться к MySQL на localhost" });
+  }
+
+  if (error && error.code === "ER_NO_SUCH_TABLE") {
+    return res.status(500).json({ error: "В базе отсутствует нужная таблица" });
+  }
+
+  if (error && error.code === "ER_BAD_FIELD_ERROR") {
+    return res.status(500).json({ error: "Структура таблицы users или items не совпадает с кодом" });
+  }
+
+  res.status(500).json({ error: "Внутренняя ошибка сервера" });
 });
 
 app.use((req, res) => {
   res.sendFile(`${__dirname}/index.html`);
 });
 
-app.listen(port, () => {
-  console.log(`Сервер запущен: http://localhost:${port}`);
+app.listen(port, async () => {
+  try {
+    await db.query("SELECT 1");
+    console.log(`Сервер запущен: http://localhost:${port}`);
+    console.log("MySQL подключен: localhost / food_app");
+  } catch (error) {
+    console.error("Ошибка подключения к MySQL:", error.message);
+    console.log(`Сервер запущен: http://localhost:${port}`);
+  }
 });

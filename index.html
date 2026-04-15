@@ -34,15 +34,15 @@
       <main>
         <section class="hero" id="home">
           <div class="hero-content">
-            <div class="hero-chip">Как в любимом сервисе доставки, только в вашем проекте</div>
-            <h1>Еда из лучших заведений города, собранная в один яркий интерфейс</h1>
+            <div class="hero-chip">Сервис доставки с ярким стартовым экраном и рабочим API</div>
+            <h1>Еда из лучших заведений города, собранная в один быстрый интерфейс</h1>
             <p>
-              FlashFood показывает популярные блюда, умеет регистрировать пользователей,
-              авторизовывать их и управлять каталогом через защищенные API-эндпоинты.
+              При открытии сайта выполняется вход под администратором по умолчанию, а
+              регистрация создает нового пользователя с именем, email и датой регистрации в базе.
             </p>
             <div class="hero-actions">
               <a class="primary-button" href="#catalog">Перейти к блюдам</a>
-              <a class="secondary-button" href="#auth">Войти в аккаунт</a>
+              <a class="secondary-button" href="#auth">Открыть аккаунт</a>
             </div>
           </div>
           <div class="hero-showcase">
@@ -56,8 +56,8 @@
               <strong>от 15 минут</strong>
             </article>
             <article class="showcase-card accent-card">
-              <span></span>
-              <strong></strong>
+              <span>Автовход</span>
+              <strong>admin / admin123</strong>
             </article>
           </div>
         </section>
@@ -102,7 +102,8 @@
             <div class="auth-layout">
               <form class="panel-form" id="registerForm">
                 <h3>Создать аккаунт</h3>
-                <input type="text" name="login" placeholder="Логин" required />
+                <input type="text" name="name" placeholder="Имя" required />
+                <input type="email" name="email" placeholder="Email" required />
                 <input type="password" name="password" placeholder="Пароль" required />
                 <input type="text" name="phone" placeholder="Телефон без +" required />
                 <button type="submit" class="primary-button">Зарегистрироваться</button>
@@ -110,13 +111,13 @@
 
               <form class="panel-form" id="loginForm">
                 <h3>Войти</h3>
-                <input type="text" name="login" placeholder="Логин" required />
+                <input type="email" name="email" placeholder="Email" required />
                 <input type="password" name="password" placeholder="Пароль" required />
                 <button type="submit" class="secondary-button">Войти</button>
-                <p class="form-hint">Тестовый админ: admin / admin123</p>
+                <p class="form-hint">Автовход на сайте: admin / admin123</p>
               </form>
             </div>
-            <div class="status-box" id="authStatus">Пока никто не вошел в систему.</div>
+            <div class="status-box" id="authStatus">Проверяем текущую сессию.</div>
           </div>
         </section>
 
@@ -139,7 +140,7 @@
             <div class="section-heading">
               <div>
                 <span class="eyebrow">Управление меню</span>
-                <h2>Защищенный CRUD для блюд</h2>
+                <h2>Изменение блюд</h2>
               </div>
             </div>
             <form class="panel-form admin-form" id="itemForm">

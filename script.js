@@ -1,3 +1,8 @@
+const DEFAULT_ADMIN = {
+  email: "admin",
+  password: "admin123",
+};
+
 const state = {
   user: null,
   items: [],
@@ -23,6 +28,22 @@ const elements = {
 function setStatus(node, message, isError = false) {
   node.textContent = message;
   node.style.color = isError ? "#b42318" : "#6f6559";
+}
+
+function formatCreatedAt(value) {
+  if (!value) {
+    return "сейчас";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 async function request(url, options = {}) {
@@ -97,13 +118,17 @@ function renderUser() {
 
   setStatus(
     elements.authStatus,
-    `Вы вошли как ${state.user.login}. Теперь доступны защищенные методы для /api/items.`
+    `Вы вошли как ${state.user.email}. Защищенные методы для /api/items доступны.`
   );
 
   elements.userPanel.innerHTML = `
     <article class="user-card">
-      <strong>Логин</strong>
-      <span>${state.user.login}</span>
+      <strong>Имя</strong>
+      <span>${state.user.name || "-"}</span>
+    </article>
+    <article class="user-card">
+      <strong>Email</strong>
+      <span>${state.user.email}</span>
     </article>
     <article class="user-card">
       <strong>Телефон</strong>
@@ -112,6 +137,10 @@ function renderUser() {
     <article class="user-card">
       <strong>Роль</strong>
       <span>${state.user.role}</span>
+    </article>
+    <article class="user-card">
+      <strong>Дата регистрации</strong>
+      <span>${formatCreatedAt(state.user.createdAt)}</span>
     </article>
   `;
 }
@@ -127,12 +156,28 @@ async function loadCatalog(search = "") {
   renderGrid(elements.catalogGrid, state.items, Boolean(state.user));
 }
 
+async function loginAsDefaultAdmin() {
+  const response = await request("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify(DEFAULT_ADMIN),
+  });
+  state.user = response.user;
+  renderUser();
+  setStatus(elements.authStatus, "Выполнен вход под администратором по умолчанию.");
+}
+
 async function loadCurrentUser() {
   try {
     state.user = await request("/api/auth/me");
   } catch (error) {
-    state.user = null;
+    try {
+      await loginAsDefaultAdmin();
+    } catch (loginError) {
+      state.user = null;
+      setStatus(elements.authStatus, loginError.message, true);
+    }
   }
+
   renderUser();
   if (state.items.length) {
     renderGrid(elements.catalogGrid, state.items, Boolean(state.user));
@@ -205,12 +250,12 @@ elements.loginForm.addEventListener("submit", async (event) => {
 
 elements.logoutButton.addEventListener("click", async () => {
   try {
-    const response = await request("/api/auth/logout", { method: "POST" });
+    await request("/api/auth/logout", { method: "POST" });
     state.user = null;
     renderUser();
     resetItemForm();
+    await loginAsDefaultAdmin();
     await loadCatalog(elements.searchInput.value.trim());
-    setStatus(elements.authStatus, response.message);
   } catch (error) {
     setStatus(elements.authStatus, error.message, true);
   }
