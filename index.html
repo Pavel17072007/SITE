@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlashFood</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="brand" href="#home">
+          <span class="brand-badge">FF</span>
+          <span class="brand-text">
+            <strong>FlashFood</strong>
+            <small>доставка за 20 минут</small>
+          </span>
+        </a>
+        <nav class="nav">
+          <a href="#home">Главная</a>
+          <a href="#catalog">Каталог</a>
+          <a href="#auth">Войти</a>
+          <a href="#profile">Профиль</a>
+        </nav>
+        <button class="ghost-button" id="logoutButton" hidden>Выйти</button>
+      </header>
+
+      <main>
+        <section class="hero" id="home">
+          <div class="hero-content">
+            <div class="hero-chip">Как в любимом сервисе доставки, только в вашем проекте</div>
+            <h1>Еда из лучших заведений города, собранная в один яркий интерфейс</h1>
+            <p>
+              FlashFood показывает популярные блюда, умеет регистрировать пользователей,
+              авторизовывать их и управлять каталогом через защищенные API-эндпоинты.
+            </p>
+            <div class="hero-actions">
+              <a class="primary-button" href="#catalog">Перейти к блюдам</a>
+              <a class="secondary-button" href="#auth">Войти в аккаунт</a>
+            </div>
+          </div>
+          <div class="hero-showcase">
+            <article class="showcase-card large-card">
+              <span>Хит дня</span>
+              <strong>Сеты, поке, пицца и бургеры</strong>
+              <p>Большие карточки, светлый фон, желтый акцент и быстрая навигация.</p>
+            </article>
+            <article class="showcase-card small-card">
+              <span>Доставка</span>
+              <strong>от 15 минут</strong>
+            </article>
+            <article class="showcase-card accent-card">
+              <span></span>
+              <strong></strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-heading">
+            <div>
+              <span class="eyebrow">Популярное</span>
+              <h2>Хиты, которые пользователи открывают первыми</h2>
+            </div>
+          </div>
+          <div class="card-grid" id="popularGrid"></div>
+        </section>
+
+        <section class="section" id="catalog">
+          <div class="section-heading catalog-head">
+            <div>
+              <span class="eyebrow">Каталог</span>
+              <h2>Меню, рестораны и поиск по блюдам</h2>
+            </div>
+            <form class="search-form" id="searchForm">
+              <input
+                type="search"
+                id="searchInput"
+                placeholder="Например, суши, поке, бургер"
+                autocomplete="off"
+              />
+              <button type="submit" class="primary-button">Найти</button>
+            </form>
+          </div>
+          <div class="card-grid" id="catalogGrid"></div>
+        </section>
+
+        <section class="section auth-section" id="auth">
+          <div class="auth-card">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">Аккаунт</span>
+                <h2>Регистрация и вход</h2>
+              </div>
+            </div>
+            <div class="auth-layout">
+              <form class="panel-form" id="registerForm">
+                <h3>Создать аккаунт</h3>
+                <input type="text" name="login" placeholder="Логин" required />
+                <input type="password" name="password" placeholder="Пароль" required />
+                <input type="text" name="phone" placeholder="Телефон без +" required />
+                <button type="submit" class="primary-button">Зарегистрироваться</button>
+              </form>
+
+              <form class="panel-form" id="loginForm">
+                <h3>Войти</h3>
+                <input type="text" name="login" placeholder="Логин" required />
+                <input type="password" name="password" placeholder="Пароль" required />
+                <button type="submit" class="secondary-button">Войти</button>
+                <p class="form-hint">Тестовый админ: admin / admin123</p>
+              </form>
+            </div>
+            <div class="status-box" id="authStatus">Пока никто не вошел в систему.</div>
+          </div>
+        </section>
+
+        <section class="section profile-section" id="profile">
+          <div class="profile-card">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">Профиль</span>
+                <h2>Текущий пользователь</h2>
+              </div>
+            </div>
+            <div class="user-panel" id="userPanel">
+              <p>Авторизуйтесь, чтобы увидеть данные.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="section admin-section">
+          <div class="admin-card">
+            <div class="section-heading">
+              <div>
+                <span class="eyebrow">Управление меню</span>
+                <h2>Защищенный CRUD для блюд</h2>
+              </div>
+            </div>
+            <form class="panel-form admin-form" id="itemForm">
+              <input type="hidden" name="id" />
+              <input type="text" name="title" placeholder="Название блюда" required />
+              <input type="text" name="restaurant" placeholder="Ресторан" required />
+              <input type="text" name="category" placeholder="Категория" required />
+              <input type="number" min="1" step="0.1" name="price" placeholder="Цена" required />
+              <input type="number" min="0" max="5" step="0.1" name="rating" placeholder="Рейтинг" required />
+              <input type="number" min="0" step="1" name="reviews" placeholder="Отзывы" required />
+              <input type="text" name="deliveryTime" placeholder="Время доставки" required />
+              <input type="url" name="image" placeholder="URL изображения" />
+              <textarea
+                name="description"
+                rows="4"
+                placeholder="Описание блюда"
+                required
+              ></textarea>
+              <label class="checkbox-line">
+                <input type="checkbox" name="popular" />
+                <span>Показывать в популярных</span>
+              </label>
+              <div class="admin-actions">
+                <button type="submit" class="primary-button">Сохранить блюдо</button>
+                <button type="button" class="ghost-button" id="resetItemForm">Очистить</button>
+              </div>
+            </form>
+            <div class="status-box" id="itemStatus">
+              Создание, редактирование и удаление доступны только после входа.
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
