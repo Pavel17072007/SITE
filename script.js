@@ -4,6 +4,7 @@ const DEFAULT_ADMIN = {
 };
 
 const ROUTE = window.location.pathname;
+const PENDING_EDIT_ITEM_ID_KEY = "flashfood_edit_item_id";
 
 const state = {
   user: null,
@@ -44,6 +45,8 @@ const elements = {
   resetItemForm: document.getElementById("resetItemForm"),
   searchForm: document.getElementById("searchForm"),
   searchInput: document.getElementById("searchInput"),
+  itemDetailsModal: null,
+  itemDetailsBody: null,
 };
 
 function setStatus(node, message, isError = false) {
@@ -93,6 +96,27 @@ function formatPhoneForDisplay(phone) {
     return "-";
   }
   return raw.startsWith("+") ? raw : `+${raw}`;
+}
+
+function getResizedImageUrl(url, width, height) {
+  const source = String(url || "").trim();
+  if (!source) {
+    return source;
+  }
+
+  try {
+    const parsed = new URL(source, window.location.origin);
+    if (parsed.hostname.includes("images.unsplash.com")) {
+      parsed.searchParams.set("auto", "format");
+      parsed.searchParams.set("fit", "crop");
+      parsed.searchParams.set("w", String(width));
+      parsed.searchParams.set("h", String(height));
+      parsed.searchParams.set("q", "80");
+    }
+    return parsed.toString();
+  } catch (error) {
+    return source;
+  }
 }
 
 function isHomeRoute() {
@@ -190,9 +214,9 @@ function applyRouteLayout() {
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
     setAuthMode({
-      eyebrow: "/auth/login",
-      title: "Вход в аккаунт",
-      lead: "Введите email и пароль, чтобы открыть профиль и получить доступ к защищенным действиям.",
+      eyebrow: "Аккаунт",
+      title: "Вход",
+      lead: "Введите email и пароль, чтобы продолжить.",
       showLogin: true,
       showRegister: false,
       activeLink: "login",
@@ -209,9 +233,9 @@ function applyRouteLayout() {
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
     setAuthMode({
-      eyebrow: "/auth/register",
-      title: "Регистрация нового пользователя",
-      lead: "Заполните короткую форму, и система сразу авторизует вас и перенаправит в профиль.",
+      eyebrow: "Аккаунт",
+      title: "Регистрация",
+      lead: "Заполните форму, чтобы создать аккаунт.",
       showLogin: false,
       showRegister: true,
       activeLink: "register",
@@ -240,9 +264,9 @@ function applyRouteLayout() {
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
     setAuthMode({
-      eyebrow: "/auth/reset-password",
+      eyebrow: "Восстановление",
       title: "Сброс пароля",
-      lead: "Введите новый пароль, чтобы завершить восстановление аккаунта.",
+      lead: "Введите новый пароль для вашего аккаунта.",
       showLogin: false,
       showRegister: false,
       showReset: true,
@@ -292,22 +316,18 @@ async function request(url, options = {}) {
 }
 
 function renderFoodCard(item, showAdminActions = false) {
+  const thumbImage = getResizedImageUrl(item.image, 450, 220);
   return `
-    <article class="food-card">
-      <img src="${item.image}" alt="${item.title}" />
+    <article class="food-card" data-view-id="${item.id}" role="button" tabindex="0" aria-label="Открыть информацию о блюде ${item.title}">
+      <img src="${thumbImage}" alt="${item.title}" loading="lazy" />
       <div class="food-card-body">
         <div class="food-topline">
           <span>${item.restaurant}</span>
           <span>${item.deliveryTime}</span>
         </div>
         <h3>${item.title}</h3>
-        <p>${item.description}</p>
-        <div class="food-meta">
-          <span>${item.category}</span>
-          <span>${item.rating} · ${item.reviews} отзывов</span>
-        </div>
         <div class="food-actions">
-          <button class="primary-button" type="button">${Number(item.price).toFixed(2)} BYN</button>
+          <span class="food-price">${Number(item.price).toFixed(2)} BYN</span>
           ${
             showAdminActions
               ? `<button class="ghost-button" type="button" data-edit-id="${item.id}">Редактировать</button>
@@ -318,6 +338,91 @@ function renderFoodCard(item, showAdminActions = false) {
       </div>
     </article>
   `;
+}
+
+function findItemById(id) {
+  const numericId = Number(id);
+  return (
+    state.items.find((entry) => Number(entry.id) === numericId) ||
+    state.popularItems.find((entry) => Number(entry.id) === numericId) ||
+    null
+  );
+}
+
+function ensureItemDetailsModal() {
+  if (elements.itemDetailsModal && elements.itemDetailsBody) {
+    return;
+  }
+
+  const modal = document.createElement("div");
+  modal.className = "item-modal is-hidden";
+  modal.innerHTML = `
+    <div class="item-modal-backdrop" data-close-item-modal></div>
+    <article class="item-modal-card" role="dialog" aria-modal="true" aria-label="Информация о блюде">
+      <button type="button" class="item-modal-close" data-close-item-modal aria-label="Закрыть">x</button>
+      <div class="item-modal-body" data-item-modal-body></div>
+    </article>
+  `;
+
+  modal.addEventListener("click", (event) => {
+    if (event.target.closest("[data-close-item-modal]")) {
+      closeItemDetailsModal();
+    }
+  });
+
+  document.body.appendChild(modal);
+  elements.itemDetailsModal = modal;
+  elements.itemDetailsBody = modal.querySelector("[data-item-modal-body]");
+}
+
+function openItemDetails(item) {
+  if (!item) {
+    return;
+  }
+
+  ensureItemDetailsModal();
+  if (!elements.itemDetailsModal || !elements.itemDetailsBody) {
+    return;
+  }
+
+  const fullImage = getResizedImageUrl(item.image, 900, 440);
+  elements.itemDetailsBody.innerHTML = `
+    <img class="item-modal-image" src="${fullImage}" alt="${item.title}" />
+    <div class="item-modal-meta">
+      <div class="food-topline">
+        <span>${item.restaurant}</span>
+        <span>${item.deliveryTime}</span>
+      </div>
+      <h3>${item.title}</h3>
+      <p class="item-modal-rating">Оценка: ${item.rating} · ${item.reviews} отзывов</p>
+      <p class="food-description">${item.description || ""}</p>
+      <p class="item-modal-price">Цена: ${Number(item.price).toFixed(2)} BYN</p>
+    </div>
+  `;
+
+  elements.itemDetailsModal.classList.remove("is-hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeItemDetailsModal() {
+  if (!elements.itemDetailsModal) {
+    return;
+  }
+  elements.itemDetailsModal.classList.add("is-hidden");
+  document.body.style.overflow = "";
+}
+
+function handleFoodCardKeydown(event) {
+  const card = event.target.closest("[data-view-id]");
+  if (!card) {
+    return;
+  }
+  if (event.key !== "Enter" && event.key !== " ") {
+    return;
+  }
+  event.preventDefault();
+  const item = findItemById(card.dataset.viewId);
+  openItemDetails(item);
 }
 
 function renderGrid(node, items, allowManage = false) {
@@ -402,7 +507,7 @@ async function loadCatalog(search = "") {
 
   const query = search ? `?search=${encodeURIComponent(search)}` : "";
   state.items = await request(`/api/items${query}`);
-  renderGrid(elements.catalogGrid, state.items, Boolean(state.user));
+  renderGrid(elements.catalogGrid, state.items, isAdminUser());
 }
 
 async function loginAsDefaultAdmin() {
@@ -443,8 +548,15 @@ async function loadCurrentUser() {
   }
 
   renderUser();
+  if (isProfileRoute()) {
+    try {
+      await restorePendingItemEditIfNeeded();
+    } catch (error) {
+      setStatus(elements.itemStatus, error.message, true);
+    }
+  }
   if (state.items.length) {
-    renderGrid(elements.catalogGrid, state.items, Boolean(state.user));
+    renderGrid(elements.catalogGrid, state.items, isAdminUser());
   }
 }
 
@@ -470,6 +582,40 @@ function fillItemForm(item) {
   elements.itemForm.elements.popular.checked = item.popular;
   setStatus(elements.itemStatus, `Редактирование блюда: ${item.title}`);
   elements.itemForm.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function openItemEditorById(itemId) {
+  const id = Number(itemId);
+  if (!Number.isFinite(id) || id <= 0) {
+    return;
+  }
+
+  let item = state.items.find((entry) => Number(entry.id) === id);
+  if (!item) {
+    item = state.popularItems.find((entry) => Number(entry.id) === id);
+  }
+  if (!item) {
+    item = await request(`/api/items/${id}`);
+  }
+  if (!item) {
+    throw new Error("Блюдо не найдено");
+  }
+
+  fillItemForm(item);
+}
+
+async function restorePendingItemEditIfNeeded() {
+  if (!isProfileRoute() || !isAdminUser()) {
+    return;
+  }
+
+  const pendingId = sessionStorage.getItem(PENDING_EDIT_ITEM_ID_KEY);
+  if (!pendingId) {
+    return;
+  }
+
+  sessionStorage.removeItem(PENDING_EDIT_ITEM_ID_KEY);
+  await openItemEditorById(pendingId);
 }
 
 elements.registerForm.addEventListener("submit", async (event) => {
@@ -696,12 +842,29 @@ elements.resetItemForm.addEventListener("click", resetItemForm);
 elements.catalogGrid.addEventListener("click", async (event) => {
   const editButton = event.target.closest("[data-edit-id]");
   const deleteButton = event.target.closest("[data-delete-id]");
+  const card = event.target.closest("[data-view-id]");
 
   if (editButton) {
     const id = Number(editButton.dataset.editId);
-    const item = state.items.find((entry) => entry.id === id);
-    if (item) {
-      fillItemForm(item);
+    if (!Number.isFinite(id) || id <= 0) {
+      return;
+    }
+
+    if (!isAdminUser()) {
+      setStatus(elements.itemStatus, "Редактирование доступно только администратору.", true);
+      return;
+    }
+
+    if (!isProfileRoute()) {
+      sessionStorage.setItem(PENDING_EDIT_ITEM_ID_KEY, String(id));
+      window.location.href = "/profile";
+      return;
+    }
+
+    try {
+      await openItemEditorById(id);
+    } catch (error) {
+      setStatus(elements.itemStatus, error.message, true);
     }
     return;
   }
@@ -720,6 +883,30 @@ elements.catalogGrid.addEventListener("click", async (event) => {
     } catch (error) {
       setStatus(elements.itemStatus, error.message, true);
     }
+    return;
+  }
+
+  if (card) {
+    const item = findItemById(card.dataset.viewId);
+    openItemDetails(item);
+  }
+});
+
+elements.popularGrid.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-view-id]");
+  if (!card) {
+    return;
+  }
+  const item = findItemById(card.dataset.viewId);
+  openItemDetails(item);
+});
+
+elements.catalogGrid.addEventListener("keydown", handleFoodCardKeydown);
+elements.popularGrid.addEventListener("keydown", handleFoodCardKeydown);
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeItemDetailsModal();
   }
 });
 
@@ -740,6 +927,7 @@ async function init() {
 }
 
 init();
+
 
 
 

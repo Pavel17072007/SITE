@@ -1,11 +1,13 @@
 :root {
-  --bg: #f5f1e8;
-  --surface: #fffaf2;
+  --bg: #f7f2e4;
+  --surface: #fff9ee;
   --surface-strong: #ffffff;
   --text: #181512;
   --muted: #6f6559;
   --accent: #ffd21e;
   --accent-deep: #f3b300;
+  --accent-soft: #ffe58a;
+  --accent-glow: #fff1b8;
   --line: rgba(24, 21, 18, 0.08);
   --shadow: 0 18px 50px rgba(24, 21, 18, 0.08);
   --radius-xl: 32px;
@@ -25,8 +27,9 @@ body {
   margin: 0;
   font-family: "Manrope", sans-serif;
   background:
-    radial-gradient(circle at top right, rgba(255, 210, 30, 0.25), transparent 25%),
-    linear-gradient(180deg, #fff6d1 0%, var(--bg) 35%, #f4efe7 100%);
+    radial-gradient(circle at 10% 8%, rgba(255, 221, 86, 0.42), transparent 22%),
+    radial-gradient(circle at top right, rgba(255, 210, 30, 0.32), transparent 24%),
+    linear-gradient(180deg, #fff7cf 0%, var(--bg) 34%, #f3eddf 100%);
   color: var(--text);
 }
 
@@ -65,7 +68,7 @@ textarea {
   gap: 20px;
   padding: 16px 20px;
   margin-bottom: 20px;
-  background: rgba(255, 250, 242, 0.88);
+  background: linear-gradient(135deg, rgba(255, 252, 242, 0.95), rgba(255, 242, 190, 0.62));
   border: 1px solid rgba(255, 255, 255, 0.7);
   border-radius: 999px;
   backdrop-filter: blur(18px);
@@ -130,7 +133,7 @@ textarea {
   grid-template-columns: 1.3fr 1fr;
   gap: 24px;
   padding: 32px;
-  background: linear-gradient(135deg, #fff7d7 0%, #fff2b9 48%, #ffd21e 100%);
+  background: linear-gradient(135deg, #fff7d7 0%, #ffeeb0 40%, #ffd21e 100%);
   box-shadow: var(--shadow);
 }
 
@@ -183,12 +186,13 @@ textarea {
 }
 
 .primary-button {
-  background: var(--text);
-  color: white;
+  background: linear-gradient(135deg, #ffd93a, #f7b500);
+  color: #2f2500;
+  box-shadow: 0 8px 20px rgba(243, 179, 0, 0.32);
 }
 
 .secondary-button {
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #fffdf7, #fff2ca);
   color: var(--text);
 }
 
@@ -268,7 +272,7 @@ textarea {
 .section {
   margin-top: 28px;
   padding: 28px;
-  background: rgba(255, 250, 242, 0.82);
+  background: linear-gradient(180deg, rgba(255, 250, 242, 0.88), rgba(255, 244, 214, 0.72));
   box-shadow: var(--shadow);
 }
 
@@ -323,20 +327,35 @@ textarea {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 18px;
 }
 
 .food-card {
+  width: 100%;
+  max-width: 450px;
+  margin: 0 auto;
   overflow: hidden;
   border-radius: 26px;
   background: var(--surface-strong);
   border: 1px solid rgba(24, 21, 18, 0.06);
   box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.food-card:hover {
+  transform: translateY(-2px);
+}
+
+.food-card:focus-visible {
+  outline: 3px solid rgba(255, 210, 30, 0.65);
+  outline-offset: 2px;
 }
 
 .food-card img {
-  width: 100%;
+  width: 450px;
+  max-width: 100%;
   height: 220px;
   object-fit: cover;
   display: block;
@@ -370,10 +389,96 @@ textarea {
   color: rgba(24, 21, 18, 0.74);
 }
 
+.food-description {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .food-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.food-price {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--text);
+  color: #fff;
+  font-weight: 700;
+}
+
+.item-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.item-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(24, 21, 18, 0.52);
+}
+
+.item-modal-card {
+  position: relative;
+  width: min(940px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: 0 25px 70px rgba(24, 21, 18, 0.28);
+}
+
+.item-modal-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(24, 21, 18, 0.12);
+  color: var(--text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.item-modal-body {
+  padding: 20px;
+}
+
+.item-modal-image {
+  width: 900px;
+  max-width: 100%;
+  height: 440px;
+  max-height: 60vh;
+  object-fit: cover;
+  border-radius: 16px;
+  display: block;
+  margin: 0 auto 16px;
+}
+
+.item-modal-meta h3 {
+  margin: 12px 0 10px;
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+}
+
+.item-modal-rating {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.item-modal-price {
+  margin: 14px 0 0;
+  font-weight: 800;
 }
 
 .auth-card,
@@ -464,7 +569,7 @@ textarea {
   margin-top: 18px;
   padding: 16px 18px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(255, 244, 205, 0.86));
 }
 
 .user-panel {
@@ -525,9 +630,9 @@ body.route-auth .topbar {
 }
 
 body.route-auth .page-shell {
-  width: min(100%, 1120px);
+  width: min(100%, 940px);
   min-height: 100vh;
-  padding: 24px;
+  padding: 18px;
 }
 
 body.route-auth main {
@@ -537,7 +642,7 @@ body.route-auth main {
 }
 
 body.route-auth .auth-section {
-  width: min(100%, 980px);
+  width: min(100%, 640px);
   margin: 0;
   padding: 0;
   background: transparent;
@@ -547,7 +652,7 @@ body.route-auth .auth-section {
 body.route-auth .auth-card {
   position: relative;
   overflow: hidden;
-  padding: clamp(24px, 4vw, 42px);
+  padding: clamp(18px, 3vw, 26px);
   border: 1px solid rgba(255, 255, 255, 0.58);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 246, 225, 0.78)),
@@ -570,9 +675,9 @@ body.route-auth .auth-card::before {
 }
 
 body.route-auth .auth-hero {
-  grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr);
-  gap: 28px;
-  margin-bottom: 30px;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 body.route-auth .auth-copy {
@@ -581,15 +686,19 @@ body.route-auth .auth-copy {
 }
 
 body.route-auth .auth-copy h2 {
-  font-size: clamp(2.3rem, 4vw, 4.2rem);
+  font-size: clamp(2rem, 3.2vw, 3rem);
   line-height: 0.95;
   letter-spacing: -0.05em;
-  max-width: 12ch;
+  max-width: none;
+  text-align: center;
+  margin: 8px auto 10px;
 }
 
 body.route-auth .auth-copy p {
-  max-width: 42ch;
-  font-size: 1.05rem;
+  max-width: 44ch;
+  font-size: 0.98rem;
+  text-align: center;
+  margin: 0 auto;
 }
 
 body.route-auth .auth-switch-link {
@@ -598,14 +707,13 @@ body.route-auth .auth-switch-link {
   background: rgba(255, 255, 255, 0.92);
 }
 
+body.route-auth .auth-switcher {
+  width: 100%;
+  justify-content: center;
+}
+
 body.route-auth .auth-sidekick {
-  min-height: 100%;
-  padding: 28px;
-  color: var(--text);
-  background:
-    linear-gradient(160deg, rgba(255, 250, 236, 0.94), rgba(255, 210, 30, 0.55)),
-    #fff3be;
-  border: 1px solid rgba(24, 21, 18, 0.06);
+  display: none;
 }
 
 body.route-auth .auth-sidekick strong {
@@ -614,17 +722,18 @@ body.route-auth .auth-sidekick strong {
 }
 
 body.route-auth .auth-layout {
-  grid-template-columns: minmax(0, 520px);
-  justify-content: start;
+  grid-template-columns: minmax(0, 420px);
+  justify-content: center;
   gap: 0;
 }
 
 body.route-auth .panel-form {
   position: relative;
   z-index: 1;
-  padding: 26px;
+  padding: 18px;
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 18px 40px rgba(24, 21, 18, 0.08);
+  text-align: center;
 }
 
 body.route-auth .panel-form h3 {
@@ -641,10 +750,16 @@ body.route-auth .panel-form .secondary-button {
 }
 
 body.route-auth #authStatus {
-  max-width: 520px;
-  margin-top: 18px;
+  max-width: 420px;
+  margin-top: 12px;
+  margin-inline: auto;
+  text-align: center;
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(24, 21, 18, 0.06);
+}
+
+body.route-auth .forgot-password-button {
+  align-self: center;
 }
 
 @media (max-width: 900px) {
@@ -715,7 +830,16 @@ body.route-auth #authStatus {
   }
 
   .food-card img {
+    width: 100%;
     height: 180px;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .item-modal-image {
+    height: 220px;
   }
 
   .hero-content h1 {
