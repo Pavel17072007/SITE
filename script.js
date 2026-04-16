@@ -52,6 +52,22 @@ function setStatus(node, message, isError = false) {
   node.style.color = isError ? "#b42318" : "#6f6559";
 }
 
+function getPasswordValidationError(password) {
+  if (password.length < 6) {
+    return "Password must contain at least 6 characters.";
+  }
+  if (!/\p{Lu}/u.test(password)) {
+    return "Password must contain at least one uppercase letter.";
+  }
+  if (!/\p{Nd}/u.test(password)) {
+    return "Password must contain at least one digit.";
+  }
+  if (!/[^\p{L}\p{N}]/u.test(password)) {
+    return "Password must contain at least one symbol.";
+  }
+  return null;
+}
+
 function formatCreatedAt(value) {
   if (!value) {
     return "сейчас";
@@ -424,6 +440,11 @@ function fillItemForm(item) {
 elements.registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(elements.registerForm).entries());
+  const passwordError = getPasswordValidationError(String(payload.password || ""));
+  if (passwordError) {
+    setStatus(elements.authStatus, passwordError, true);
+    return;
+  }
 
   try {
     const response = await request("/api/auth/register", {
@@ -504,8 +525,9 @@ elements.resetPasswordForm?.addEventListener("submit", async (event) => {
     return;
   }
 
-  if (password.length < 6) {
-    setStatus(elements.authStatus, "Password must contain at least 6 characters.", true);
+  const passwordError = getPasswordValidationError(password);
+  if (passwordError) {
+    setStatus(elements.authStatus, passwordError, true);
     return;
   }
 

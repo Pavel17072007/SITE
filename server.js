@@ -172,6 +172,22 @@ function validatePhone(phone) {
   return null;
 }
 
+function validatePasswordComplexity(password) {
+  if (password.length < 6) {
+    return "Password must be at least 6 characters";
+  }
+  if (!/\p{Lu}/u.test(password)) {
+    return "Password must contain at least one uppercase letter";
+  }
+  if (!/\p{Nd}/u.test(password)) {
+    return "Password must contain at least one digit";
+  }
+  if (!/[^\p{L}\p{N}]/u.test(password)) {
+    return "Password must contain at least one symbol";
+  }
+  return null;
+}
+
 async function validateRegisterPayload(body) {
   const email = String(body.email || "").trim().toLowerCase();
   const name = String(body.name || "").trim();
@@ -184,8 +200,9 @@ async function validateRegisterPayload(body) {
   if (name.length < 2) {
     return "Name must be at least 2 characters";
   }
-  if (password.length < 6) {
-    return "Password must be at least 6 characters";
+  const passwordError = validatePasswordComplexity(password);
+  if (passwordError) {
+    return passwordError;
   }
 
   const phoneError = validatePhone(phone);
@@ -378,8 +395,9 @@ app.post("/api/auth/reset-password", async (req, res, next) => {
     if (!code) {
       return res.status(400).json({ error: "Reset code is required" });
     }
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: "Password must be at least 6 characters" });
+    const passwordError = validatePasswordComplexity(newPassword);
+    if (passwordError) {
+      return res.status(400).json({ error: passwordError });
     }
 
     const payload = resetCodes.get(email);
