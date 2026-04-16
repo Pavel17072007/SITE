@@ -115,12 +115,20 @@ function isResetPasswordRoute() {
   return ROUTE === "/auth/reset-password";
 }
 
+function isAdminUser() {
+  return Boolean(state.user && state.user.role === "admin");
+}
+
 function showSection(section, show) {
   if (!section) {
     return;
   }
 
   section.classList.toggle("is-hidden", !show);
+}
+
+function syncAdminSectionVisibility() {
+  showSection(elements.adminSection, isProfileRoute() && isAdminUser());
 }
 
 function setAuthMode({ eyebrow, title, lead, showLogin, showRegister, showReset = false, activeLink }) {
@@ -218,7 +226,8 @@ function applyRouteLayout() {
     showSection(elements.catalog, false);
     showSection(elements.auth, false);
     showSection(elements.profileSection, true);
-    showSection(elements.adminSection, true);
+    showSection(elements.adminSection, false);
+    syncAdminSectionVisibility();
     return;
   }
 
@@ -248,7 +257,7 @@ function applyRouteLayout() {
   showSection(elements.catalog, true);
   showSection(elements.auth, false);
   showSection(elements.profileSection, false);
-  showSection(elements.adminSection, true);
+  showSection(elements.adminSection, false);
   setAuthMode({
     eyebrow: "Аккаунт",
     title: "Регистрация и вход",
@@ -339,6 +348,7 @@ function renderUser() {
     }
     setStatus(elements.profileStatus, "");
     setStatus(elements.authStatus, "Пока никто не вошел в систему.");
+    syncAdminSectionVisibility();
     return;
   }
 
@@ -373,6 +383,7 @@ function renderUser() {
   if (elements.editProfileButton) {
     elements.editProfileButton.hidden = false;
   }
+  syncAdminSectionVisibility();
 }
 
 async function loadPopularItems() {
