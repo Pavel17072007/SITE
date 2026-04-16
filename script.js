@@ -35,6 +35,8 @@ const elements = {
   logoutButton: document.getElementById("logoutButton"),
   registerForm: document.getElementById("registerForm"),
   loginForm: document.getElementById("loginForm"),
+  resetPasswordForm: document.getElementById("resetPasswordForm"),
+  forgotPasswordButton: document.getElementById("forgotPasswordButton"),
   itemForm: document.getElementById("itemForm"),
   resetItemForm: document.getElementById("resetItemForm"),
   searchForm: document.getElementById("searchForm"),
@@ -82,6 +84,10 @@ function isProfileRoute() {
   return ROUTE === "/profile";
 }
 
+function isResetPasswordRoute() {
+  return ROUTE === "/auth/reset-password";
+}
+
 function showSection(section, show) {
   if (!section) {
     return;
@@ -90,18 +96,47 @@ function showSection(section, show) {
   section.classList.toggle("is-hidden", !show);
 }
 
-function setAuthMode({ eyebrow, title, lead, showLogin, showRegister, activeLink }) {
+function setAuthMode({ eyebrow, title, lead, showLogin, showRegister, showReset = false, activeLink }) {
   elements.authEyebrow.textContent = eyebrow;
   elements.authTitle.textContent = title;
   elements.authLead.textContent = lead;
   elements.loginForm.classList.toggle("is-hidden", !showLogin);
   elements.registerForm.classList.toggle("is-hidden", !showRegister);
+  elements.resetPasswordForm?.classList.toggle("is-hidden", !showReset);
   elements.loginLink.classList.toggle("is-active", activeLink === "login");
   elements.registerLink.classList.toggle("is-active", activeLink === "register");
 }
 
 function isAuthRoute() {
-  return isLoginRoute() || isRegisterRoute();
+  return isLoginRoute() || isRegisterRoute() || isResetPasswordRoute();
+}
+
+function ensureResetCodeField() {
+  if (!elements.resetPasswordForm) {
+    return null;
+  }
+
+  let codeInput = elements.resetPasswordForm.querySelector('input[name="code"]');
+  if (codeInput) {
+    return codeInput;
+  }
+
+  codeInput = document.createElement("input");
+  codeInput.type = "text";
+  codeInput.name = "code";
+  codeInput.placeholder = "Code from email";
+  codeInput.inputMode = "numeric";
+  codeInput.maxLength = 6;
+  codeInput.required = true;
+
+  const passwordInput = elements.resetPasswordForm.querySelector('input[name="password"]');
+  if (passwordInput) {
+    elements.resetPasswordForm.insertBefore(codeInput, passwordInput);
+  } else {
+    elements.resetPasswordForm.appendChild(codeInput);
+  }
+
+  return codeInput;
 }
 
 function applyBodyState(mode) {
@@ -157,6 +192,26 @@ function applyRouteLayout() {
     showSection(elements.auth, false);
     showSection(elements.profileSection, true);
     showSection(elements.adminSection, true);
+    return;
+  }
+
+  if (isResetPasswordRoute()) {
+    applyBodyState("auth");
+    showSection(elements.home, false);
+    showSection(elements.popularSection, false);
+    showSection(elements.catalog, false);
+    showSection(elements.auth, true);
+    showSection(elements.profileSection, false);
+    showSection(elements.adminSection, false);
+    setAuthMode({
+      eyebrow: "/auth/reset-password",
+      title: "Reset Password",
+      lead: "Enter a new password to finish account recovery.",
+      showLogin: false,
+      showRegister: false,
+      showReset: true,
+      activeLink: "",
+    });
     return;
   }
 
@@ -281,7 +336,7 @@ function renderUser() {
 }
 
 async function loadPopularItems() {
-  if (isLoginRoute() || isRegisterRoute() || isProfileRoute()) {
+  if (isLoginRoute() || isRegisterRoute() || isResetPasswordRoute() || isProfileRoute()) {
     return;
   }
 
@@ -290,7 +345,7 @@ async function loadPopularItems() {
 }
 
 async function loadCatalog(search = "") {
-  if (isLoginRoute() || isRegisterRoute() || isProfileRoute()) {
+  if (isLoginRoute() || isRegisterRoute() || isResetPasswordRoute() || isProfileRoute()) {
     return;
   }
 
@@ -404,6 +459,72 @@ elements.loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+elements.forgotPasswordButton?.addEventListener("click", async () => {
+  const email = String(elements.loginForm.elements.email.value || "").trim();
+
+  if (!email) {
+    setStatus(elements.authStatus, "Enter email for password recovery.", true);
+    elements.loginForm.elements.email.focus();
+    return;
+  }
+
+  try {
+    const response = await request("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    ensureResetCodeField();
+    elements.resetPasswordForm?.classList.remove("is-hidden");
+
+    setStatus(
+      elements.authStatus,
+      response.message || "If the email exists, a reset code has been sent."
+    );
+  } catch (error) {
+    setStatus(elements.authStatus, error.message, true);
+  }
+});
+
+elements.resetPasswordForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = String(elements.loginForm?.elements?.email?.value || "").trim().toLowerCase();
+  const code = String(elements.resetPasswordForm.elements.code?.value || "").trim();
+  const password = String(elements.resetPasswordForm.elements.password.value || "");
+
+  if (!email) {
+    setStatus(elements.authStatus, "Enter email for password recovery.", true);
+    elements.loginForm?.elements?.email?.focus();
+    return;
+  }
+
+  if (!code || code.length !== 6) {
+    setStatus(elements.authStatus, "Enter the 6-digit code from your email.", true);
+    return;
+  }
+
+  if (password.length < 6) {
+    setStatus(elements.authStatus, "Password must contain at least 6 characters.", true);
+    return;
+  }
+
+  try {
+    const response = await request("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, code, password }),
+    });
+
+    elements.resetPasswordForm.reset();
+    setStatus(elements.authStatus, response.message || "Password updated successfully.");
+    setTimeout(() => {
+      window.location.href = "/auth/login";
+    }, 1200);
+  } catch (error) {
+    setStatus(elements.authStatus, error.message, true);
+  }
+});
+
 elements.logoutButton.addEventListener("click", async () => {
   try {
     await request("/api/auth/logout", { method: "POST" });
@@ -502,6 +623,11 @@ elements.catalogGrid.addEventListener("click", async (event) => {
 async function init() {
   applyRouteLayout();
 
+  if (isResetPasswordRoute()) {
+    ensureResetCodeField();
+    setStatus(elements.authStatus, "Use the code from email to set a new password.");
+  }
+
   try {
     await Promise.all([loadPopularItems(), loadCatalog(), loadCurrentUser()]);
     setStatus(
@@ -514,3 +640,9 @@ async function init() {
 }
 
 init();
+
+
+
+
+
+

@@ -204,6 +204,23 @@ textarea {
   transform: translateY(-1px);
 }
 
+.forgot-password-button {
+  align-self: flex-end;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #7a4f00;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.forgot-password-button:hover {
+  text-decoration: underline;
+}
+
 .hero-showcase {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
