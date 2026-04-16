@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const crypto = require("crypto");
 const db = require("./db");
 
@@ -83,7 +83,7 @@ async function requireAuth(req, res, next) {
   try {
     const user = await getCurrentUser(req);
     if (!user) {
-      return res.status(401).json({ error: "Требуется авторизация" });
+      return res.status(401).json({ error: "РўСЂРµР±СѓРµС‚СЃСЏ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ" });
     }
     req.user = user;
     next();
@@ -107,26 +107,42 @@ async function requirePageAuth(req, res, next) {
 
 function validatePhone(phone) {
   if (!phone) {
-    return "Укажите номер телефона";
+    return "РЈРєР°Р¶РёС‚Рµ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°";
   }
   if (phone.startsWith("+")) {
-    return "Укажите номер телефона без +";
+    return "РЈРєР°Р¶РёС‚Рµ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° Р±РµР· +";
   }
   if (!/^\d+$/.test(phone)) {
-    return "Номер телефона должен содержать только цифры";
+    return "РќРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° РґРѕР»Р¶РµРЅ СЃРѕРґРµСЂР¶Р°С‚СЊ С‚РѕР»СЊРєРѕ С†РёС„СЂС‹";
   }
   if (phone.length < 11) {
-    return "Номер телефона слишком короткий";
+    return "РќРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СЃР»РёС€РєРѕРј РєРѕСЂРѕС‚РєРёР№";
   }
   return null;
 }
 
 function validateEmail(email) {
   if (!email) {
-    return "Укажите email";
+    return "РЈРєР°Р¶РёС‚Рµ email";
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return "Укажите корректный email";
+    return "РЈРєР°Р¶РёС‚Рµ РєРѕСЂСЂРµРєС‚РЅС‹Р№ email";
+  }
+  return null;
+}
+
+function validatePassword(password) {
+  if (password.length < 6) {
+    return "\u041f\u0430\u0440\u043e\u043b\u044c \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u043c\u0438\u043d\u0438\u043c\u0443\u043c 6 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432";
+  }
+  if (!/\p{Lu}/u.test(password)) {
+    return "\u041f\u0430\u0440\u043e\u043b\u044c \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u043d\u0443 \u0437\u0430\u0433\u043b\u0430\u0432\u043d\u0443\u044e \u0431\u0443\u043a\u0432\u0443";
+  }
+  if (!/\d/.test(password)) {
+    return "\u041f\u0430\u0440\u043e\u043b\u044c \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u043d\u0443 \u0446\u0438\u0444\u0440\u0443";
+  }
+  if (!/[^\p{L}\p{N}\s]/u.test(password)) {
+    return "\u041f\u0430\u0440\u043e\u043b\u044c \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c \u0445\u043e\u0442\u044f \u0431\u044b \u043e\u0434\u0438\u043d \u0441\u043f\u0435\u0446\u0441\u0438\u043c\u0432\u043e\u043b";
   }
   return null;
 }
@@ -142,12 +158,12 @@ async function validateRegisterPayload(body) {
     return emailError;
   }
   if (name.length < 2) {
-    return "Имя должно содержать минимум 2 символа";
+    return "РРјСЏ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 2 СЃРёРјРІРѕР»Р°";
   }
-  if (password.length < 6) {
-    return "Пароль должен содержать минимум 6 символов";
+  const passwordError = validatePassword(password);
+  if (passwordError) {
+    return passwordError;
   }
-
   const phoneError = validatePhone(phone);
   if (phoneError) {
     return phoneError;
@@ -157,12 +173,12 @@ async function validateRegisterPayload(body) {
     email,
   ]);
   if (emailRows.length) {
-    return "Такой email уже существует";
+    return "РўР°РєРѕР№ email СѓР¶Рµ СЃСѓС‰РµСЃС‚РІСѓРµС‚";
   }
 
   const [phoneRows] = await db.query("SELECT id FROM users WHERE phone = ? LIMIT 1", [phone]);
   if (phoneRows.length) {
-    return "Этот номер телефона уже зарегистрирован";
+    return "Р­С‚РѕС‚ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅР° СѓР¶Рµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ";
   }
 
   return null;
@@ -172,9 +188,9 @@ function validateItemPayload(body) {
   const title = String(body.title || "").trim();
   const description = String(body.description || "").trim();
   const image = String(body.image || "").trim();
-  const category = String(body.category || "").trim() || "Разное";
+  const category = String(body.category || "").trim() || "Р Р°Р·РЅРѕРµ";
   const restaurant = String(body.restaurant || "").trim() || "FlashFood";
-  const deliveryTime = String(body.deliveryTime || "").trim() || "20-30 мин";
+  const deliveryTime = String(body.deliveryTime || "").trim() || "20-30 РјРёРЅ";
   const price = Number(body.price);
   const rating = body.rating === undefined ? 4.7 : Number(body.rating);
   const reviews = body.reviews === undefined ? 0 : Number(body.reviews);
@@ -185,19 +201,19 @@ function validateItemPayload(body) {
     body.popular === "1";
 
   if (title.length < 2) {
-    return { error: "Название блюда должно содержать минимум 2 символа" };
+    return { error: "РќР°Р·РІР°РЅРёРµ Р±Р»СЋРґР° РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 2 СЃРёРјРІРѕР»Р°" };
   }
   if (!Number.isFinite(price) || price <= 0) {
-    return { error: "Цена должна быть положительным числом" };
+    return { error: "Р¦РµРЅР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РїРѕР»РѕР¶РёС‚РµР»СЊРЅС‹Рј С‡РёСЃР»РѕРј" };
   }
   if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
-    return { error: "Рейтинг должен быть числом от 0 до 5" };
+    return { error: "Р РµР№С‚РёРЅРі РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ С‡РёСЃР»РѕРј РѕС‚ 0 РґРѕ 5" };
   }
   if (!Number.isFinite(reviews) || reviews < 0) {
-    return { error: "Количество отзывов должно быть неотрицательным числом" };
+    return { error: "РљРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚Р·С‹РІРѕРІ РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ РЅРµРѕС‚СЂРёС†Р°С‚РµР»СЊРЅС‹Рј С‡РёСЃР»РѕРј" };
   }
   if (description.length < 10) {
-    return { error: "Описание должно содержать минимум 10 символов" };
+    return { error: "РћРїРёСЃР°РЅРёРµ РґРѕР»Р¶РЅРѕ СЃРѕРґРµСЂР¶Р°С‚СЊ РјРёРЅРёРјСѓРј 10 СЃРёРјРІРѕР»РѕРІ" };
   }
 
   return {
@@ -253,7 +269,7 @@ app.post("/api/auth/register", async (req, res, next) => {
 
     createSession(res, result.insertId);
     res.status(201).json({
-      message: "Регистрация прошла успешно",
+      message: "Р РµРіРёСЃС‚СЂР°С†РёСЏ РїСЂРѕС€Р»Р° СѓСЃРїРµС€РЅРѕ",
       user: getSafeUser(rows[0]),
     });
   } catch (error) {
@@ -270,17 +286,17 @@ app.post("/api/auth/login", async (req, res, next) => {
     const user = rows[0];
 
     if (!user) {
-      return res.status(404).json({ error: "Пользователь не найден" });
+      return res.status(404).json({ error: "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ РЅР°Р№РґРµРЅ" });
     }
 
     const isPasswordValid = hashPassword(password) === user.passwordHash;
     if (!isPasswordValid) {
-      return res.status(400).json({ error: "Неверный пароль" });
+      return res.status(400).json({ error: "РќРµРІРµСЂРЅС‹Р№ РїР°СЂРѕР»СЊ" });
     }
 
     createSession(res, user.id);
     res.json({
-      message: "Вход выполнен",
+      message: "Р’С…РѕРґ РІС‹РїРѕР»РЅРµРЅ",
       user: getSafeUser(user),
     });
   } catch (error) {
@@ -292,7 +308,7 @@ app.get("/api/auth/me", async (req, res, next) => {
   try {
     const user = await getCurrentUser(req);
     if (!user) {
-      return res.status(401).json({ error: "Пользователь не авторизован" });
+      return res.status(401).json({ error: "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ" });
     }
     res.json(getSafeUser(user));
   } catch (error) {
@@ -302,7 +318,7 @@ app.get("/api/auth/me", async (req, res, next) => {
 
 app.post("/api/auth/logout", (req, res) => {
   clearSession(req, res);
-  res.json({ message: "Вы вышли из системы" });
+  res.json({ message: "Р’С‹ РІС‹С€Р»Рё РёР· СЃРёСЃС‚РµРјС‹" });
 });
 
 app.get("/auth/login", (req, res) => {
@@ -357,7 +373,7 @@ app.get("/api/items/:id", async (req, res, next) => {
     const item = rows[0];
 
     if (!item) {
-      return res.status(404).json({ error: "Блюдо не найдено" });
+      return res.status(404).json({ error: "Р‘Р»СЋРґРѕ РЅРµ РЅР°Р№РґРµРЅРѕ" });
     }
 
     res.json(normalizeItem(item));
@@ -410,7 +426,7 @@ app.put("/api/items/:id", requireAuth, async (req, res, next) => {
 
     const [existingRows] = await db.query("SELECT id FROM items WHERE id = ? LIMIT 1", [id]);
     if (!existingRows.length) {
-      return res.status(404).json({ error: "Блюдо не найдено" });
+      return res.status(404).json({ error: "Р‘Р»СЋРґРѕ РЅРµ РЅР°Р№РґРµРЅРѕ" });
     }
 
     const item = validation.value;
@@ -456,11 +472,11 @@ app.delete("/api/items/:id", requireAuth, async (req, res, next) => {
     const item = rows[0];
 
     if (!item) {
-      return res.status(404).json({ error: "Блюдо не найдено" });
+      return res.status(404).json({ error: "Р‘Р»СЋРґРѕ РЅРµ РЅР°Р№РґРµРЅРѕ" });
     }
 
     await db.query("DELETE FROM items WHERE id = ?", [id]);
-    res.json({ message: "Блюдо удалено", item: normalizeItem(item) });
+    res.json({ message: "Р‘Р»СЋРґРѕ СѓРґР°Р»РµРЅРѕ", item: normalizeItem(item) });
   } catch (error) {
     next(error);
   }
@@ -470,22 +486,22 @@ app.use((error, req, res, next) => {
   console.error("Server error:", error);
 
   if (error && error.code === "ER_BAD_DB_ERROR") {
-    return res.status(500).json({ error: "База данных food_app не найдена" });
+    return res.status(500).json({ error: "Р‘Р°Р·Р° РґР°РЅРЅС‹С… food_app РЅРµ РЅР°Р№РґРµРЅР°" });
   }
 
   if (error && error.code === "ECONNREFUSED") {
-    return res.status(500).json({ error: "Не удалось подключиться к MySQL на localhost" });
+    return res.status(500).json({ error: "РќРµ СѓРґР°Р»РѕСЃСЊ РїРѕРґРєР»СЋС‡РёС‚СЊСЃСЏ Рє MySQL РЅР° localhost" });
   }
 
   if (error && error.code === "ER_NO_SUCH_TABLE") {
-    return res.status(500).json({ error: "В базе отсутствует нужная таблица" });
+    return res.status(500).json({ error: "Р’ Р±Р°Р·Рµ РѕС‚СЃСѓС‚СЃС‚РІСѓРµС‚ РЅСѓР¶РЅР°СЏ С‚Р°Р±Р»РёС†Р°" });
   }
 
   if (error && error.code === "ER_BAD_FIELD_ERROR") {
-    return res.status(500).json({ error: "Структура таблицы users или items не совпадает с кодом" });
+    return res.status(500).json({ error: "РЎС‚СЂСѓРєС‚СѓСЂР° С‚Р°Р±Р»РёС†С‹ users РёР»Рё items РЅРµ СЃРѕРІРїР°РґР°РµС‚ СЃ РєРѕРґРѕРј" });
   }
 
-  res.status(500).json({ error: "Внутренняя ошибка сервера" });
+  res.status(500).json({ error: "Р’РЅСѓС‚СЂРµРЅРЅСЏСЏ РѕС€РёР±РєР° СЃРµСЂРІРµСЂР°" });
 });
 
 app.use((req, res) => {
@@ -495,10 +511,10 @@ app.use((req, res) => {
 app.listen(port, async () => {
   try {
     await db.query("SELECT 1");
-    console.log(`Сервер запущен: http://localhost:${port}`);
-    console.log("MySQL подключен: localhost / food_app");
+    console.log(`РЎРµСЂРІРµСЂ Р·Р°РїСѓС‰РµРЅ: http://localhost:${port}`);
+    console.log("MySQL РїРѕРґРєР»СЋС‡РµРЅ: localhost / food_app");
   } catch (error) {
-    console.error("Ошибка подключения к MySQL:", error.message);
-    console.log(`Сервер запущен: http://localhost:${port}`);
+    console.error("РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє MySQL:", error.message);
+    console.log(`РЎРµСЂРІРµСЂ Р·Р°РїСѓС‰РµРЅ: http://localhost:${port}`);
   }
 });
