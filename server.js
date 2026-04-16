@@ -92,6 +92,19 @@ async function requireAuth(req, res, next) {
   }
 }
 
+async function requirePageAuth(req, res, next) {
+  try {
+    const user = await getCurrentUser(req);
+    if (!user) {
+      return res.redirect("/auth/login");
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
 function validatePhone(phone) {
   if (!phone) {
     return "Укажите номер телефона";
@@ -290,6 +303,18 @@ app.get("/api/auth/me", async (req, res, next) => {
 app.post("/api/auth/logout", (req, res) => {
   clearSession(req, res);
   res.json({ message: "Вы вышли из системы" });
+});
+
+app.get("/auth/login", (req, res) => {
+  res.sendFile(`${__dirname}/index.html`);
+});
+
+app.get("/auth/register", (req, res) => {
+  res.sendFile(`${__dirname}/index.html`);
+});
+
+app.get("/profile", requirePageAuth, (req, res) => {
+  res.sendFile(`${__dirname}/index.html`);
 });
 
 app.get("/api/items", async (req, res, next) => {

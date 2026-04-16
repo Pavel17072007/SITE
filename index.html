@@ -10,12 +10,12 @@
       href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/style.css" />
   </head>
   <body>
     <div class="page-shell">
       <header class="topbar">
-        <a class="brand" href="#home">
+        <a class="brand" href="/">
           <span class="brand-badge">FF</span>
           <span class="brand-text">
             <strong>FlashFood</strong>
@@ -23,26 +23,27 @@
           </span>
         </a>
         <nav class="nav">
-          <a href="#home">Главная</a>
-          <a href="#catalog">Каталог</a>
-          <a href="#auth">Войти</a>
-          <a href="#profile">Профиль</a>
+          <a href="/">Главная</a>
+          <a href="/#catalog">Каталог</a>
+          <a href="/auth/login">Войти</a>
+          <a href="/profile">Профиль</a>
         </nav>
         <button class="ghost-button" id="logoutButton" hidden>Выйти</button>
       </header>
 
       <main>
-        <section class="hero" id="home">
+        <section class="hero route-block" id="home">
           <div class="hero-content">
             <div class="hero-chip">Сервис доставки с ярким стартовым экраном и рабочим API</div>
             <h1>Еда из лучших заведений города, собранная в один быстрый интерфейс</h1>
             <p>
-              При открытии сайта выполняется вход под администратором по умолчанию, а
-              регистрация создает нового пользователя с именем, email и датой регистрации в базе.
+              Главная страница теперь сфокусирована на витрине и каталоге. Вход и регистрация
+              открываются на отдельной странице аккаунта, а логика авторизации и backend API
+              остаются прежними.
             </p>
             <div class="hero-actions">
-              <a class="primary-button" href="#catalog">Перейти к блюдам</a>
-              <a class="secondary-button" href="#auth">Открыть аккаунт</a>
+              <a class="primary-button" href="/#catalog">Перейти к блюдам</a>
+              <a class="secondary-button" href="/auth/login">Открыть аккаунт</a>
             </div>
           </div>
           <div class="hero-showcase">
@@ -56,13 +57,13 @@
               <strong>от 15 минут</strong>
             </article>
             <article class="showcase-card accent-card">
-              <span>Автовход</span>
-              <strong>admin / admin123</strong>
+              <span>Маршруты</span>
+              <strong>/auth/login, /auth/register, /profile</strong>
             </article>
           </div>
         </section>
 
-        <section class="section">
+        <section class="section route-block" id="popularSection">
           <div class="section-heading">
             <div>
               <span class="eyebrow">Популярное</span>
@@ -72,7 +73,7 @@
           <div class="card-grid" id="popularGrid"></div>
         </section>
 
-        <section class="section" id="catalog">
+        <section class="section route-block" id="catalog">
           <div class="section-heading catalog-head">
             <div>
               <span class="eyebrow">Каталог</span>
@@ -91,13 +92,24 @@
           <div class="card-grid" id="catalogGrid"></div>
         </section>
 
-        <section class="section auth-section" id="auth">
+        <section class="section auth-section route-block" id="auth">
           <div class="auth-card">
-            <div class="section-heading">
-              <div>
-                <span class="eyebrow">Аккаунт</span>
-                <h2>Регистрация и вход</h2>
+            <div class="auth-hero">
+              <div class="auth-copy">
+                <span class="eyebrow" id="authEyebrow">Аккаунт</span>
+                <h2 id="authTitle">Регистрация и вход</h2>
+                <p id="authLead">
+                  Войдите, чтобы увидеть профиль и управлять меню, или создайте новый аккаунт за
+                  пару шагов.
+                </p>
+                <div class="auth-switcher">
+                  <a class="auth-switch-link" id="loginLink" href="/auth/login">Войти</a>
+                  <a class="auth-switch-link" id="registerLink" href="/auth/register"
+                    >Регистрация</a
+                  >
+                </div>
               </div>
+              <div class="auth-sidekick"></div>
             </div>
             <div class="auth-layout">
               <form class="panel-form" id="registerForm">
@@ -114,14 +126,13 @@
                 <input type="email" name="email" placeholder="Email" required />
                 <input type="password" name="password" placeholder="Пароль" required />
                 <button type="submit" class="secondary-button">Войти</button>
-                <p class="form-hint">Автовход на сайте: admin / admin123</p>
               </form>
             </div>
             <div class="status-box" id="authStatus">Проверяем текущую сессию.</div>
           </div>
         </section>
 
-        <section class="section profile-section" id="profile">
+        <section class="section profile-section route-block" id="profileSection">
           <div class="profile-card">
             <div class="section-heading">
               <div>
@@ -135,7 +146,7 @@
           </div>
         </section>
 
-        <section class="section admin-section">
+        <section class="section admin-section route-block" id="adminSection">
           <div class="admin-card">
             <div class="section-heading">
               <div>
@@ -149,8 +160,23 @@
               <input type="text" name="restaurant" placeholder="Ресторан" required />
               <input type="text" name="category" placeholder="Категория" required />
               <input type="number" min="1" step="0.1" name="price" placeholder="Цена" required />
-              <input type="number" min="0" max="5" step="0.1" name="rating" placeholder="Рейтинг" required />
-              <input type="number" min="0" step="1" name="reviews" placeholder="Отзывы" required />
+              <input
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                name="rating"
+                placeholder="Рейтинг"
+                required
+              />
+              <input
+                type="number"
+                min="0"
+                step="1"
+                name="reviews"
+                placeholder="Отзывы"
+                required
+              />
               <input type="text" name="deliveryTime" placeholder="Время доставки" required />
               <input type="url" name="image" placeholder="URL изображения" />
               <textarea
@@ -176,6 +202,6 @@
       </main>
     </div>
 
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
   </body>
 </html>

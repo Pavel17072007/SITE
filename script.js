@@ -3,6 +3,8 @@ const DEFAULT_ADMIN = {
   password: "admin123",
 };
 
+const ROUTE = window.location.pathname;
+
 const state = {
   user: null,
   items: [],
@@ -11,6 +13,20 @@ const state = {
 };
 
 const elements = {
+  body: document.body,
+  topbar: document.querySelector(".topbar"),
+  main: document.querySelector("main"),
+  home: document.getElementById("home"),
+  popularSection: document.getElementById("popularSection"),
+  catalog: document.getElementById("catalog"),
+  auth: document.getElementById("auth"),
+  profileSection: document.getElementById("profileSection"),
+  adminSection: document.getElementById("adminSection"),
+  authTitle: document.getElementById("authTitle"),
+  authEyebrow: document.getElementById("authEyebrow"),
+  authLead: document.getElementById("authLead"),
+  loginLink: document.getElementById("loginLink"),
+  registerLink: document.getElementById("registerLink"),
   popularGrid: document.getElementById("popularGrid"),
   catalogGrid: document.getElementById("catalogGrid"),
   authStatus: document.getElementById("authStatus"),
@@ -26,6 +42,10 @@ const elements = {
 };
 
 function setStatus(node, message, isError = false) {
+  if (!node) {
+    return;
+  }
+
   node.textContent = message;
   node.style.color = isError ? "#b42318" : "#6f6559";
 }
@@ -44,6 +64,117 @@ function formatCreatedAt(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function isHomeRoute() {
+  return ROUTE === "/";
+}
+
+function isLoginRoute() {
+  return ROUTE === "/auth/login";
+}
+
+function isRegisterRoute() {
+  return ROUTE === "/auth/register";
+}
+
+function isProfileRoute() {
+  return ROUTE === "/profile";
+}
+
+function showSection(section, show) {
+  if (!section) {
+    return;
+  }
+
+  section.classList.toggle("is-hidden", !show);
+}
+
+function setAuthMode({ eyebrow, title, lead, showLogin, showRegister, activeLink }) {
+  elements.authEyebrow.textContent = eyebrow;
+  elements.authTitle.textContent = title;
+  elements.authLead.textContent = lead;
+  elements.loginForm.classList.toggle("is-hidden", !showLogin);
+  elements.registerForm.classList.toggle("is-hidden", !showRegister);
+  elements.loginLink.classList.toggle("is-active", activeLink === "login");
+  elements.registerLink.classList.toggle("is-active", activeLink === "register");
+}
+
+function isAuthRoute() {
+  return isLoginRoute() || isRegisterRoute();
+}
+
+function applyBodyState(mode) {
+  elements.body.classList.toggle("route-auth", mode === "auth");
+  elements.body.classList.toggle("route-profile", mode === "profile");
+  elements.body.classList.toggle("route-home", mode === "home");
+}
+
+function applyRouteLayout() {
+  if (isLoginRoute()) {
+    applyBodyState("auth");
+    showSection(elements.home, false);
+    showSection(elements.popularSection, false);
+    showSection(elements.catalog, false);
+    showSection(elements.auth, true);
+    showSection(elements.profileSection, false);
+    showSection(elements.adminSection, false);
+    setAuthMode({
+      eyebrow: "/auth/login",
+      title: "Вход в аккаунт",
+      lead: "Введите email и пароль, чтобы открыть профиль и получить доступ к защищенным действиям.",
+      showLogin: true,
+      showRegister: false,
+      activeLink: "login",
+    });
+    return;
+  }
+
+  if (isRegisterRoute()) {
+    applyBodyState("auth");
+    showSection(elements.home, false);
+    showSection(elements.popularSection, false);
+    showSection(elements.catalog, false);
+    showSection(elements.auth, true);
+    showSection(elements.profileSection, false);
+    showSection(elements.adminSection, false);
+    setAuthMode({
+      eyebrow: "/auth/register",
+      title: "Регистрация нового пользователя",
+      lead: "Заполните короткую форму, и система сразу авторизует вас и перенаправит в профиль.",
+      showLogin: false,
+      showRegister: true,
+      activeLink: "register",
+    });
+    return;
+  }
+
+  if (isProfileRoute()) {
+    applyBodyState("profile");
+    showSection(elements.home, false);
+    showSection(elements.popularSection, false);
+    showSection(elements.catalog, false);
+    showSection(elements.auth, false);
+    showSection(elements.profileSection, true);
+    showSection(elements.adminSection, true);
+    return;
+  }
+
+  applyBodyState("home");
+  showSection(elements.home, true);
+  showSection(elements.popularSection, true);
+  showSection(elements.catalog, true);
+  showSection(elements.auth, false);
+  showSection(elements.profileSection, true);
+  showSection(elements.adminSection, true);
+  setAuthMode({
+    eyebrow: "Аккаунт",
+    title: "Регистрация и вход",
+    lead: "Войдите, чтобы увидеть профиль и управлять меню, или создайте новый аккаунт за пару шагов.",
+    showLogin: true,
+    showRegister: true,
+    activeLink: "",
+  });
 }
 
 async function request(url, options = {}) {
@@ -99,8 +230,12 @@ function renderFoodCard(item, showAdminActions = false) {
 }
 
 function renderGrid(node, items, allowManage = false) {
+  if (!node) {
+    return;
+  }
+
   if (!items.length) {
-    node.innerHTML = `<div class="empty-state">Ничего не найдено. Попробуйте другой запрос.</div>`;
+    node.innerHTML = '<div class="empty-state">Ничего не найдено. Попробуйте другой запрос.</div>';
     return;
   }
 
@@ -146,11 +281,19 @@ function renderUser() {
 }
 
 async function loadPopularItems() {
+  if (isLoginRoute() || isRegisterRoute() || isProfileRoute()) {
+    return;
+  }
+
   state.popularItems = await request("/api/items?popular=true");
   renderGrid(elements.popularGrid, state.popularItems, false);
 }
 
 async function loadCatalog(search = "") {
+  if (isLoginRoute() || isRegisterRoute() || isProfileRoute()) {
+    return;
+  }
+
   const query = search ? `?search=${encodeURIComponent(search)}` : "";
   state.items = await request(`/api/items${query}`);
   renderGrid(elements.catalogGrid, state.items, Boolean(state.user));
@@ -161,6 +304,7 @@ async function loginAsDefaultAdmin() {
     method: "POST",
     body: JSON.stringify(DEFAULT_ADMIN),
   });
+
   state.user = response.user;
   renderUser();
   setStatus(elements.authStatus, "Выполнен вход под администратором по умолчанию.");
@@ -169,12 +313,26 @@ async function loginAsDefaultAdmin() {
 async function loadCurrentUser() {
   try {
     state.user = await request("/api/auth/me");
+    if (state.user && isAuthRoute()) {
+      window.location.href = "/profile";
+      return;
+    }
   } catch (error) {
-    try {
-      await loginAsDefaultAdmin();
-    } catch (loginError) {
+    if (isProfileRoute()) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    if (isHomeRoute()) {
+      try {
+        await loginAsDefaultAdmin();
+      } catch (loginError) {
+        state.user = null;
+        setStatus(elements.authStatus, loginError.message, true);
+      }
+    } else {
       state.user = null;
-      setStatus(elements.authStatus, loginError.message, true);
+      setStatus(elements.authStatus, "Введите данные для входа или регистрации.");
     }
   }
 
@@ -210,19 +368,18 @@ function fillItemForm(item) {
 
 elements.registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const formData = new FormData(elements.registerForm);
-  const payload = Object.fromEntries(formData.entries());
+  const payload = Object.fromEntries(new FormData(elements.registerForm).entries());
 
   try {
     const response = await request("/api/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+
     state.user = response.user;
     elements.registerForm.reset();
     renderUser();
-    await loadCatalog(elements.searchInput.value.trim());
-    setStatus(elements.authStatus, response.message);
+    window.location.href = "/profile";
   } catch (error) {
     setStatus(elements.authStatus, error.message, true);
   }
@@ -230,19 +387,18 @@ elements.registerForm.addEventListener("submit", async (event) => {
 
 elements.loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const formData = new FormData(elements.loginForm);
-  const payload = Object.fromEntries(formData.entries());
+  const payload = Object.fromEntries(new FormData(elements.loginForm).entries());
 
   try {
     const response = await request("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(payload),
     });
+
     state.user = response.user;
     elements.loginForm.reset();
     renderUser();
-    await loadCatalog(elements.searchInput.value.trim());
-    setStatus(elements.authStatus, response.message);
+    window.location.href = "/profile";
   } catch (error) {
     setStatus(elements.authStatus, error.message, true);
   }
@@ -254,8 +410,19 @@ elements.logoutButton.addEventListener("click", async () => {
     state.user = null;
     renderUser();
     resetItemForm();
-    await loginAsDefaultAdmin();
-    await loadCatalog(elements.searchInput.value.trim());
+
+    if (isProfileRoute()) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    if (isHomeRoute()) {
+      await loginAsDefaultAdmin();
+      await loadCatalog(elements.searchInput.value.trim());
+      return;
+    }
+
+    window.location.href = "/auth/login";
   } catch (error) {
     setStatus(elements.authStatus, error.message, true);
   }
@@ -263,6 +430,7 @@ elements.logoutButton.addEventListener("click", async () => {
 
 elements.searchForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+
   try {
     await loadCatalog(elements.searchInput.value.trim());
   } catch (error) {
@@ -332,6 +500,8 @@ elements.catalogGrid.addEventListener("click", async (event) => {
 });
 
 async function init() {
+  applyRouteLayout();
+
   try {
     await Promise.all([loadPopularItems(), loadCatalog(), loadCurrentUser()]);
     setStatus(
