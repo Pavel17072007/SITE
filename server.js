@@ -110,9 +110,9 @@ async function sendPasswordResetEmail(email, resetCode) {
   await transporter.sendMail({
     from: mailConfig.from,
     to: email,
-    subject: "FlashFood password reset",
-    text: `Your password reset code: ${resetCode}. It is valid for 10 minutes.`,
-    html: `<p>Your password reset code:</p><p><strong style="font-size:22px;letter-spacing:2px">${resetCode}</strong></p><p>It is valid for 10 minutes.</p>`,
+    subject: "Сброс пароля FlashFood",
+    text: `Код для сброса пароля: ${resetCode}. Код действует 10 минут.`,
+    html: `<p>Код для сброса пароля:</p><p><strong style="font-size:22px;letter-spacing:2px">${resetCode}</strong></p><p>Код действует 10 минут.</p>`,
   });
 }
 
@@ -147,7 +147,7 @@ async function requireAuth(req, res, next) {
   try {
     const user = await getCurrentUser(req);
     if (!user) {
-      return res.status(401).json({ error: "Authentication required" });
+      return res.status(401).json({ error: "Требуется авторизация" });
     }
     req.user = user;
     next();
@@ -158,32 +158,32 @@ async function requireAuth(req, res, next) {
 
 function validatePhone(phone) {
   if (!phone) {
-    return "Phone number is required";
+    return "Номер телефона обязателен";
   }
   if (phone.startsWith("+")) {
-    return "Provide phone number without +";
+    return "Укажите номер телефона без +";
   }
   if (!/^\d+$/.test(phone)) {
-    return "Phone number must contain only digits";
+    return "Номер телефона должен содержать только цифры";
   }
   if (phone.length < 11) {
-    return "Phone number is too short";
+    return "Номер телефона слишком короткий";
   }
   return null;
 }
 
 function validatePasswordComplexity(password) {
   if (password.length < 6) {
-    return "Password must be at least 6 characters";
+    return "Пароль должен содержать минимум 6 символов";
   }
   if (!/\p{Lu}/u.test(password)) {
-    return "Password must contain at least one uppercase letter";
+    return "Пароль должен содержать хотя бы одну заглавную букву";
   }
   if (!/\p{Nd}/u.test(password)) {
-    return "Password must contain at least one digit";
+    return "Пароль должен содержать хотя бы одну цифру";
   }
   if (!/[^\p{L}\p{N}]/u.test(password)) {
-    return "Password must contain at least one symbol";
+    return "Пароль должен содержать хотя бы один символ";
   }
   return null;
 }
@@ -195,10 +195,10 @@ async function validateRegisterPayload(body) {
   const phone = String(body.phone || "").trim();
 
   if (!email || !email.includes("@")) {
-    return "Valid email is required";
+    return "Укажите корректный email";
   }
   if (name.length < 2) {
-    return "Name must be at least 2 characters";
+    return "Имя должно содержать минимум 2 символа";
   }
   const passwordError = validatePasswordComplexity(password);
   if (passwordError) {
@@ -214,12 +214,12 @@ async function validateRegisterPayload(body) {
     email,
   ]);
   if (emailRows.length) {
-    return "User with this email already exists";
+    return "Пользователь с таким email уже существует";
   }
 
   const [phoneRows] = await db.query("SELECT id FROM users WHERE phone = ? LIMIT 1", [phone]);
   if (phoneRows.length) {
-    return "This phone number is already registered";
+    return "Этот номер телефона уже зарегистрирован";
   }
 
   return null;
@@ -242,19 +242,19 @@ function validateItemPayload(body) {
     body.popular === "1";
 
   if (title.length < 2) {
-    return { error: "Title must be at least 2 characters" };
+    return { error: "Название должно содержать минимум 2 символа" };
   }
   if (!Number.isFinite(price) || price <= 0) {
-    return { error: "Price must be a positive number" };
+    return { error: "Цена должна быть положительным числом" };
   }
   if (!Number.isFinite(rating) || rating < 0 || rating > 5) {
-    return { error: "Rating must be between 0 and 5" };
+    return { error: "Рейтинг должен быть в диапазоне от 0 до 5" };
   }
   if (!Number.isFinite(reviews) || reviews < 0) {
-    return { error: "Reviews must be a non-negative number" };
+    return { error: "Количество отзывов не может быть отрицательным" };
   }
   if (description.length < 10) {
-    return { error: "Description must be at least 10 characters" };
+    return { error: "Описание должно содержать минимум 10 символов" };
   }
 
   return {
@@ -314,7 +314,7 @@ app.post("/api/auth/register", async (req, res, next) => {
 
     createSession(res, user.id);
     res.status(201).json({
-      message: "Registration successful",
+      message: "Регистрация успешна",
       user,
     });
   } catch (error) {
@@ -331,17 +331,17 @@ app.post("/api/auth/login", async (req, res, next) => {
     const user = rows[0];
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "Пользователь не найден" });
     }
 
     const isPasswordValid = hashPassword(password) === user.passwordHash;
     if (!isPasswordValid) {
-      return res.status(400).json({ error: "Wrong password" });
+      return res.status(400).json({ error: "Неверный пароль" });
     }
 
     createSession(res, user.id);
     res.json({
-      message: "Login successful",
+      message: "Вход выполнен",
       user: getSafeUser(user),
     });
   } catch (error) {
@@ -353,7 +353,7 @@ app.post("/api/auth/forgot-password", async (req, res, next) => {
   try {
     const email = String(req.body.email || "").trim().toLowerCase();
     if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "Valid email is required" });
+      return res.status(400).json({ error: "Укажите корректный email" });
     }
 
     const [rows] = await db.query("SELECT id, email FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1", [
@@ -376,7 +376,7 @@ app.post("/api/auth/forgot-password", async (req, res, next) => {
     }
 
     res.json({
-      message: "If the email exists, a reset code has been sent",
+      message: "Если такой email существует, код восстановления отправлен",
     });
   } catch (error) {
     next(error);
@@ -390,10 +390,10 @@ app.post("/api/auth/reset-password", async (req, res, next) => {
     const newPassword = String(req.body.password || "");
 
     if (!email || !email.includes("@")) {
-      return res.status(400).json({ error: "Valid email is required" });
+      return res.status(400).json({ error: "Укажите корректный email" });
     }
     if (!code) {
-      return res.status(400).json({ error: "Reset code is required" });
+      return res.status(400).json({ error: "Требуется код восстановления" });
     }
     const passwordError = validatePasswordComplexity(newPassword);
     if (passwordError) {
@@ -404,7 +404,7 @@ app.post("/api/auth/reset-password", async (req, res, next) => {
 
     if (!payload || payload.expiresAt < Date.now()) {
       resetCodes.delete(email);
-      return res.status(400).json({ error: "Code is invalid or expired" });
+      return res.status(400).json({ error: "Код неверный или срок действия истек" });
     }
 
     const inputCodeHash = hashResetCode(code);
@@ -415,13 +415,13 @@ app.post("/api/auth/reset-password", async (req, res, next) => {
       } else {
         resetCodes.set(email, payload);
       }
-      return res.status(400).json({ error: "Code is invalid or expired" });
+      return res.status(400).json({ error: "Код неверный или срок действия истек" });
     }
 
     const [existingRows] = await db.query("SELECT id FROM users WHERE id = ? LIMIT 1", [payload.userId]);
     if (!existingRows.length) {
       resetCodes.delete(email);
-      return res.status(400).json({ error: "Code is invalid or expired" });
+      return res.status(400).json({ error: "Код неверный или срок действия истек" });
     }
 
     const passwordHash = hashPassword(newPassword);
@@ -434,7 +434,7 @@ app.post("/api/auth/reset-password", async (req, res, next) => {
       }
     }
 
-    res.json({ message: "Password has been reset" });
+    res.json({ message: "Пароль был сброшен" });
   } catch (error) {
     next(error);
   }
@@ -444,7 +444,7 @@ app.get("/api/auth/me", async (req, res, next) => {
   try {
     const user = await getCurrentUser(req);
     if (!user) {
-      return res.status(401).json({ error: "Not authenticated" });
+      return res.status(401).json({ error: "Пользователь не авторизован" });
     }
     res.json(getSafeUser(user));
   } catch (error) {
@@ -452,9 +452,46 @@ app.get("/api/auth/me", async (req, res, next) => {
   }
 });
 
+app.put("/api/auth/profile", requireAuth, async (req, res, next) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const phone = String(req.body.phone || "").trim();
+
+    if (name.length < 2) {
+      return res.status(400).json({ error: "Имя должно содержать минимум 2 символа" });
+    }
+
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      return res.status(400).json({ error: phoneError });
+    }
+
+    const [phoneRows] = await db.query("SELECT id FROM users WHERE phone = ? AND id <> ? LIMIT 1", [
+      phone,
+      req.user.id,
+    ]);
+    if (phoneRows.length) {
+      return res.status(400).json({ error: "Этот номер телефона уже зарегистрирован" });
+    }
+
+    await db.query("UPDATE users SET name = ?, phone = ? WHERE id = ?", [name, phone, req.user.id]);
+    const updatedUser = await findUserById(req.user.id);
+    if (!updatedUser) {
+      return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    res.json({
+      message: "Профиль обновлен",
+      user: getSafeUser(updatedUser),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.post("/api/auth/logout", (req, res) => {
   clearSession(req, res);
-  res.json({ message: "Logged out" });
+  res.json({ message: "Вы вышли из системы" });
 });
 
 app.get("/api/items", async (req, res, next) => {
@@ -495,7 +532,7 @@ app.get("/api/items/:id", async (req, res, next) => {
     const item = rows[0];
 
     if (!item) {
-      return res.status(404).json({ error: "Item not found" });
+      return res.status(404).json({ error: "Блюдо не найдено" });
     }
 
     res.json(normalizeItem(item));
@@ -548,7 +585,7 @@ app.put("/api/items/:id", requireAuth, async (req, res, next) => {
 
     const [existingRows] = await db.query("SELECT id FROM items WHERE id = ? LIMIT 1", [id]);
     if (!existingRows.length) {
-      return res.status(404).json({ error: "Item not found" });
+      return res.status(404).json({ error: "Блюдо не найдено" });
     }
 
     const item = validation.value;
@@ -594,11 +631,11 @@ app.delete("/api/items/:id", requireAuth, async (req, res, next) => {
     const item = rows[0];
 
     if (!item) {
-      return res.status(404).json({ error: "Item not found" });
+      return res.status(404).json({ error: "Блюдо не найдено" });
     }
 
     await db.query("DELETE FROM items WHERE id = ?", [id]);
-    res.json({ message: "Item deleted", item: normalizeItem(item) });
+    res.json({ message: "Блюдо удалено", item: normalizeItem(item) });
   } catch (error) {
     next(error);
   }
@@ -617,14 +654,14 @@ app.use((error, req, res, next) => {
   console.error("Server error:", error);
 
   if (error && error.code === "ER_BAD_DB_ERROR") {
-    return res.status(500).json({ error: "Database flashfood_user was not found" });
+    return res.status(500).json({ error: "База данных flashfood_user не найдена" });
   }
 
   if (error && error.code === "ECONNREFUSED") {
-    return res.status(500).json({ error: "Cannot connect to MySQL on localhost" });
+    return res.status(500).json({ error: "Не удалось подключиться к MySQL на localhost" });
   }
 
-  res.status(500).json({ error: "Internal server error" });
+  res.status(500).json({ error: "Внутренняя ошибка сервера" });
 });
 
 app.use((req, res) => {

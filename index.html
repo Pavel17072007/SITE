@@ -34,12 +34,11 @@
       <main>
         <section class="hero route-block" id="home">
           <div class="hero-content">
-            <div class="hero-chip">Сервис доставки с ярким стартовым экраном и рабочим API</div>
+            <div class="hero-chip">Сервис доставки с ярким стартовым экраном</div>
             <h1>Еда из лучших заведений города, собранная в один быстрый интерфейс</h1>
             <p>
               Главная страница теперь сфокусирована на витрине и каталоге. Вход и регистрация
-              открываются на отдельной странице аккаунта, а логика авторизации и backend API
-              остаются прежними.
+              открываются на отдельной странице аккаунта.
             </p>
             <div class="hero-actions">
               <a class="primary-button" href="/#catalog">Перейти к блюдам</a>
@@ -130,9 +129,9 @@
               </form>
 
               <form class="panel-form is-hidden" id="resetPasswordForm">
-                <h3>Reset password</h3>
-                <input type="password" name="password" placeholder="New password" required minlength="6" />
-                <button type="submit" class="secondary-button">Set new password</button>
+                <h3>Сброс пароля</h3>
+                <input type="password" name="password" placeholder="Новый пароль" required minlength="6" />
+                <button type="submit" class="secondary-button">Установить новый пароль</button>
               </form>
             </div>
             <div class="status-box" id="authStatus">Проверяем текущую сессию.</div>
@@ -150,6 +149,14 @@
             <div class="user-panel" id="userPanel">
               <p>Авторизуйтесь, чтобы увидеть данные.</p>
             </div>
+            <button type="button" class="ghost-button" id="editProfileButton">Изменить</button>
+            <form class="panel-form is-hidden" id="profileForm">
+              <h3>Редактирование профиля</h3>
+              <input type="text" name="name" placeholder="Имя" required minlength="2" />
+              <input type="text" name="phone" placeholder="Телефон без +" required />
+              <button type="submit" class="primary-button">Сохранить профиль</button>
+            </form>
+            <div class="status-box" id="profileStatus">Измените имя или телефон и нажмите «Сохранить профиль».</div>
           </div>
         </section>
 

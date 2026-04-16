@@ -30,9 +30,12 @@ const elements = {
   popularGrid: document.getElementById("popularGrid"),
   catalogGrid: document.getElementById("catalogGrid"),
   authStatus: document.getElementById("authStatus"),
+  profileStatus: document.getElementById("profileStatus"),
   itemStatus: document.getElementById("itemStatus"),
   userPanel: document.getElementById("userPanel"),
   logoutButton: document.getElementById("logoutButton"),
+  profileForm: document.getElementById("profileForm"),
+  editProfileButton: document.getElementById("editProfileButton"),
   registerForm: document.getElementById("registerForm"),
   loginForm: document.getElementById("loginForm"),
   resetPasswordForm: document.getElementById("resetPasswordForm"),
@@ -54,16 +57,16 @@ function setStatus(node, message, isError = false) {
 
 function getPasswordValidationError(password) {
   if (password.length < 6) {
-    return "Password must contain at least 6 characters.";
+    return "Пароль должен содержать минимум 6 символов.";
   }
   if (!/\p{Lu}/u.test(password)) {
-    return "Password must contain at least one uppercase letter.";
+    return "Пароль должен содержать хотя бы одну заглавную букву.";
   }
   if (!/\p{Nd}/u.test(password)) {
-    return "Password must contain at least one digit.";
+    return "Пароль должен содержать хотя бы одну цифру.";
   }
   if (!/[^\p{L}\p{N}]/u.test(password)) {
-    return "Password must contain at least one symbol.";
+    return "Пароль должен содержать хотя бы один символ.";
   }
   return null;
 }
@@ -82,6 +85,14 @@ function formatCreatedAt(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatPhoneForDisplay(phone) {
+  const raw = String(phone || "").trim();
+  if (!raw) {
+    return "-";
+  }
+  return raw.startsWith("+") ? raw : `+${raw}`;
 }
 
 function isHomeRoute() {
@@ -140,7 +151,7 @@ function ensureResetCodeField() {
   codeInput = document.createElement("input");
   codeInput.type = "text";
   codeInput.name = "code";
-  codeInput.placeholder = "Code from email";
+  codeInput.placeholder = "Код из письма";
   codeInput.inputMode = "numeric";
   codeInput.maxLength = 6;
   codeInput.required = true;
@@ -221,8 +232,8 @@ function applyRouteLayout() {
     showSection(elements.adminSection, false);
     setAuthMode({
       eyebrow: "/auth/reset-password",
-      title: "Reset Password",
-      lead: "Enter a new password to finish account recovery.",
+      title: "Сброс пароля",
+      lead: "Введите новый пароль, чтобы завершить восстановление аккаунта.",
       showLogin: false,
       showRegister: false,
       showReset: true,
@@ -236,7 +247,7 @@ function applyRouteLayout() {
   showSection(elements.popularSection, true);
   showSection(elements.catalog, true);
   showSection(elements.auth, false);
-  showSection(elements.profileSection, true);
+  showSection(elements.profileSection, false);
   showSection(elements.adminSection, true);
   setAuthMode({
     eyebrow: "Аккаунт",
@@ -317,14 +328,23 @@ function renderUser() {
   elements.logoutButton.hidden = !state.user;
 
   if (!state.user) {
-    elements.userPanel.innerHTML = "<p>Авторизуйтесь, чтобы увидеть данные из GET /api/auth/me.</p>";
+    elements.userPanel.innerHTML = "<p>Авторизуйтесь, чтобы увидеть данные профиля.</p>";
+    if (elements.profileForm) {
+      elements.profileForm.reset();
+      elements.profileForm.classList.add("is-hidden");
+    }
+    if (elements.editProfileButton) {
+      elements.editProfileButton.hidden = true;
+      elements.editProfileButton.textContent = "Изменить";
+    }
+    setStatus(elements.profileStatus, "");
     setStatus(elements.authStatus, "Пока никто не вошел в систему.");
     return;
   }
 
   setStatus(
     elements.authStatus,
-    `Вы вошли как ${state.user.email}. Защищенные методы для /api/items доступны.`
+    `Вы вошли как ${state.user.email}.`
   );
 
   elements.userPanel.innerHTML = `
@@ -338,17 +358,21 @@ function renderUser() {
     </article>
     <article class="user-card">
       <strong>Телефон</strong>
-      <span>${state.user.phone}</span>
-    </article>
-    <article class="user-card">
-      <strong>Роль</strong>
-      <span>${state.user.role}</span>
+      <span>${formatPhoneForDisplay(state.user.phone)}</span>
     </article>
     <article class="user-card">
       <strong>Дата регистрации</strong>
       <span>${formatCreatedAt(state.user.createdAt)}</span>
     </article>
   `;
+
+  if (elements.profileForm) {
+    elements.profileForm.elements.name.value = state.user.name || "";
+    elements.profileForm.elements.phone.value = state.user.phone || "";
+  }
+  if (elements.editProfileButton) {
+    elements.editProfileButton.hidden = false;
+  }
 }
 
 async function loadPopularItems() {
@@ -480,11 +504,57 @@ elements.loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+elements.profileForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  if (!state.user) {
+    setStatus(elements.profileStatus, "Сначала войдите в аккаунт.", true);
+    return;
+  }
+
+  const name = String(elements.profileForm.elements.name.value || "").trim();
+  const phone = String(elements.profileForm.elements.phone.value || "").trim();
+
+  try {
+    const response = await request("/api/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify({ name, phone }),
+    });
+
+    state.user = response.user;
+    renderUser();
+    elements.profileForm?.classList.add("is-hidden");
+    if (elements.editProfileButton) {
+      elements.editProfileButton.textContent = "Изменить";
+    }
+    setStatus(elements.profileStatus, response.message || "Профиль успешно обновлен.");
+  } catch (error) {
+    setStatus(elements.profileStatus, error.message, true);
+  }
+});
+
+elements.editProfileButton?.addEventListener("click", () => {
+  const isHidden = elements.profileForm?.classList.contains("is-hidden");
+  if (!elements.profileForm || !state.user) {
+    return;
+  }
+
+  if (isHidden) {
+    elements.profileForm.elements.name.value = state.user.name || "";
+    elements.profileForm.elements.phone.value = state.user.phone || "";
+    elements.profileForm.classList.remove("is-hidden");
+    elements.editProfileButton.textContent = "Отменить";
+  } else {
+    elements.profileForm.classList.add("is-hidden");
+    elements.editProfileButton.textContent = "Изменить";
+  }
+});
+
 elements.forgotPasswordButton?.addEventListener("click", async () => {
   const email = String(elements.loginForm.elements.email.value || "").trim();
 
   if (!email) {
-    setStatus(elements.authStatus, "Enter email for password recovery.", true);
+    setStatus(elements.authStatus, "Введите email для восстановления пароля.", true);
     elements.loginForm.elements.email.focus();
     return;
   }
@@ -500,7 +570,7 @@ elements.forgotPasswordButton?.addEventListener("click", async () => {
 
     setStatus(
       elements.authStatus,
-      response.message || "If the email exists, a reset code has been sent."
+      response.message || "Если такой email существует, код восстановления отправлен."
     );
   } catch (error) {
     setStatus(elements.authStatus, error.message, true);
@@ -515,13 +585,13 @@ elements.resetPasswordForm?.addEventListener("submit", async (event) => {
   const password = String(elements.resetPasswordForm.elements.password.value || "");
 
   if (!email) {
-    setStatus(elements.authStatus, "Enter email for password recovery.", true);
+    setStatus(elements.authStatus, "Введите email для восстановления пароля.", true);
     elements.loginForm?.elements?.email?.focus();
     return;
   }
 
   if (!code || code.length !== 6) {
-    setStatus(elements.authStatus, "Enter the 6-digit code from your email.", true);
+    setStatus(elements.authStatus, "Введите 6-значный код из письма.", true);
     return;
   }
 
@@ -538,7 +608,7 @@ elements.resetPasswordForm?.addEventListener("submit", async (event) => {
     });
 
     elements.resetPasswordForm.reset();
-    setStatus(elements.authStatus, response.message || "Password updated successfully.");
+    setStatus(elements.authStatus, response.message || "Пароль успешно обновлен.");
     setTimeout(() => {
       window.location.href = "/auth/login";
     }, 1200);
@@ -647,15 +717,12 @@ async function init() {
 
   if (isResetPasswordRoute()) {
     ensureResetCodeField();
-    setStatus(elements.authStatus, "Use the code from email to set a new password.");
+    setStatus(elements.authStatus, "Используйте код из письма, чтобы задать новый пароль.");
   }
 
   try {
     await Promise.all([loadPopularItems(), loadCatalog(), loadCurrentUser()]);
-    setStatus(
-      elements.itemStatus,
-      "CRUD готов: GET /api/items и /api/items/:id публичны, POST/PUT/DELETE защищены авторизацией."
-    );
+    setStatus(elements.itemStatus, "");
   } catch (error) {
     setStatus(elements.itemStatus, error.message, true);
   }
