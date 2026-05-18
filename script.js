@@ -47,6 +47,10 @@ const elements = {
   searchInput: document.getElementById("searchInput"),
   itemDetailsModal: null,
   itemDetailsBody: null,
+  // Добавленные элементы для управления понравившимися блюдами
+  toggleLikedButton: document.getElementById("toggleLikedItemsButton"),
+  likedItemsContainer: document.getElementById("likedItemsContainer"),
+  likedItemsGrid: document.getElementById("likedItemsGrid"),
 };
 
 function setStatus(node, message, isError = false) {
@@ -375,6 +379,19 @@ function ensureItemDetailsModal() {
   elements.itemDetailsBody = modal.querySelector("[data-item-modal-body]");
 }
 
+// Функция загрузки лайкнутых блюд для отображения в профиле
+async function loadLikedItems() {
+  try {
+    const likedItems = await request("/api/items/liked/list");
+    renderGrid(elements.likedItemsGrid, likedItems, false);
+  } catch (error) {
+    console.error("Ошибка загрузки понравившихся блюд:", error);
+    if (elements.likedItemsGrid) {
+      elements.likedItemsGrid.innerHTML = `<div class="empty-state" style="color: #b42318;">Не удалось загрузить понравившиеся блюда.</div>`;
+    }
+  }
+}
+
 function openItemDetails(item) {
   if (!item) {
     return;
@@ -386,6 +403,8 @@ function openItemDetails(item) {
   }
 
   const fullImage = getResizedImageUrl(item.image, 900, 440);
+  
+  // Добавлена кнопка "Лайк" (🤍 / ❤️) в структуру модального окна для авторизованных пользователей
   elements.itemDetailsBody.innerHTML = `
     <img class="item-modal-image" src="${fullImage}" alt="${item.title}" />
     <div class="item-modal-meta">
@@ -393,7 +412,10 @@ function openItemDetails(item) {
         <span>${item.restaurant}</span>
         <span>${item.deliveryTime}</span>
       </div>
-      <h3>${item.title}</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0 8px;">
+        <h3 style="margin: 0;">${item.title}</h3>
+        ${state.user ? `<button id="likeHeartButton" class="ghost-button" style="font-size: 1.5rem; padding: 8px 16px; cursor: pointer; border: none; background: none;">🤍</button>` : ''}
+      </div>
       <p class="item-modal-rating">Оценка: ${item.rating} · ${item.reviews} отзывов</p>
       <p class="food-description">${item.description || ""}</p>
       <p class="item-modal-price">Цена: ${Number(item.price).toFixed(2)} BYN</p>
@@ -402,6 +424,35 @@ function openItemDetails(item) {
 
   elements.itemDetailsModal.classList.remove("is-hidden");
   document.body.style.overflow = "hidden";
+
+  // Логика работы кнопки лайка
+  if (state.user) {
+    const heartBtn = document.getElementById("likeHeartButton");
+    
+    // Проверяем актуальный статус лайка на сервере
+    request(`/api/items/${item.id}/liked`)
+      .then(data => {
+        if (data.liked) {
+          heartBtn.textContent = "❤️";
+        }
+      })
+      .catch(console.error);
+
+    // Переключение лайка при клике
+    heartBtn.addEventListener("click", async () => {
+      try {
+        const res = await request(`/api/items/${item.id}/like`, { method: "POST" });
+        heartBtn.textContent = res.liked ? "❤️" : "🤍";
+        
+        // Если блок понравившегося открыт в профиле, динамически обновляем сетку
+        if (isProfileRoute() && elements.likedItemsContainer && !elements.likedItemsContainer.classList.contains("is-hidden")) {
+          loadLikedItems();
+        }
+      } catch (err) {
+        console.error("Ошибка при обработке лайка:", err);
+      }
+    });
+  }
 }
 
 function closeItemDetailsModal() {
@@ -450,6 +501,13 @@ function renderUser() {
     if (elements.editProfileButton) {
       elements.editProfileButton.hidden = true;
       elements.editProfileButton.textContent = "Изменить";
+    }
+    // Скрываем контейнер понравившихся блюд при разлогине
+    if (elements.likedItemsContainer) {
+      elements.likedItemsContainer.classList.add("is-hidden");
+    }
+    if (elements.toggleLikedButton) {
+      elements.toggleLikedButton.textContent = "Понравившиеся блюда";
     }
     setStatus(elements.profileStatus, "");
     setStatus(elements.authStatus, "Пока никто не вошел в систему.");
@@ -918,6 +976,21 @@ async function init() {
     setStatus(elements.authStatus, "Используйте код из письма, чтобы задать новый пароль.");
   }
 
+  // Навешивание события на кнопку переключения вкладки "Понравившиеся блюда" в профиле
+  if (elements.toggleLikedButton && elements.likedItemsContainer) {
+    elements.toggleLikedButton.addEventListener("click", () => {
+      const isHidden = elements.likedItemsContainer.classList.contains("is-hidden");
+      if (isHidden) {
+        elements.likedItemsContainer.classList.remove("is-hidden");
+        elements.toggleLikedButton.textContent = "Скрыть понравившиеся";
+        loadLikedItems();
+      } else {
+        elements.likedItemsContainer.classList.add("is-hidden");
+        elements.toggleLikedButton.textContent = "Понравившиеся блюда";
+      }
+    });
+  }
+
   try {
     await Promise.all([loadPopularItems(), loadCatalog(), loadCurrentUser()]);
     setStatus(elements.itemStatus, "");
@@ -927,10 +1000,3 @@ async function init() {
 }
 
 init();
-
-
-
-
-
-
-

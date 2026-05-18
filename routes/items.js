@@ -37,17 +37,67 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+router.get("/liked/list", requireAuth, async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [rows] = await db.query(
+      `SELECT items.* FROM items 
+       JOIN likes ON items.id = likes.item_id 
+       WHERE likes.user_id = ? ORDER BY likes.id DESC`,
+      [userId]
+    );
+    res.json(rows.map(normalizeItem));
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get("/:id", async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [id]);
-    const item = rows[0];
-
-    if (!item) {
+    if (!rows.length) {
       return res.status(404).json({ error: "Блюдо не найдено" });
     }
+    res.json(normalizeItem(rows[0]));
+  } catch (error) {
+    next(error);
+  }
+});
 
-    res.json(normalizeItem(item));
+router.get("/:id/liked", requireAuth, async (req, res, next) => {
+  try {
+    const itemId = Number(req.params.id);
+    const userId = req.user.id;
+
+    const [rows] = await db.query(
+      "SELECT 1 FROM likes WHERE user_id = ? AND item_id = ? LIMIT 1",
+      [userId, itemId]
+    );
+
+    res.json({ liked: rows.length > 0 });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:id/like", requireAuth, async (req, res, next) => {
+  try {
+    const itemId = Number(req.params.id);
+    const userId = req.user.id;
+
+    const [rows] = await db.query(
+      "SELECT id FROM likes WHERE user_id = ? AND item_id = ? LIMIT 1",
+      [userId, itemId]
+    );
+
+    if (rows.length > 0) {
+      await db.query("DELETE FROM likes WHERE user_id = ? AND item_id = ?", [userId, itemId]);
+      res.json({ liked: false, message: "Удалено из понравившихся" });
+    } else {
+      await db.query("INSERT INTO likes (user_id, item_id) VALUES (?, ?)", [userId, itemId]);
+      res.json({ liked: true, message: "Добавлено в понравившиеся" });
+    }
   } catch (error) {
     next(error);
   }
@@ -62,9 +112,8 @@ router.post("/", requireAuth, async (req, res, next) => {
 
     const item = validation.value;
     const [result] = await db.query(
-      `INSERT INTO items
-      (title, price, rating, reviews, image, category, restaurant, deliveryTime, popular, description)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO items (title, price, rating, reviews, image, category, restaurant, deliveryTime, popular, description)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         item.title,
         item.price,
@@ -80,7 +129,7 @@ router.post("/", requireAuth, async (req, res, next) => {
     );
 
     const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [result.insertId]);
-    res.status(201).json(normalizeItem(rows[0]));
+    res.status(211).json(normalizeItem(rows[0]));
   } catch (error) {
     next(error);
   }
@@ -90,7 +139,6 @@ router.put("/:id", requireAuth, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const validation = validateItemPayload(req.body);
-
     if (validation.error) {
       return res.status(400).json({ error: validation.error });
     }
@@ -140,14 +188,13 @@ router.delete("/:id", requireAuth, async (req, res, next) => {
   try {
     const id = Number(req.params.id);
     const [rows] = await db.query("SELECT * FROM items WHERE id = ? LIMIT 1", [id]);
-    const item = rows[0];
-
-    if (!item) {
+    if (!rows.length) {
       return res.status(404).json({ error: "Блюдо не найдено" });
     }
 
+    await db.query("DELETE FROM likes WHERE item_id = ?", [id]);
     await db.query("DELETE FROM items WHERE id = ?", [id]);
-    res.json({ message: "Блюдо удалено", item: normalizeItem(item) });
+    res.json({ message: `Блюдо "${rows[0].title}" успешно удалено.` });
   } catch (error) {
     next(error);
   }

@@ -1,0 +1,12 @@
+
+async function loadCatalog(search = "") {
+  if (isLoginRoute() || isRegisterRoute() || isResetPasswordRoute() || isProfileRoute()) {
+    return;
+  }
+
+  const query = search ? `?search=${encodeURIComponent(search)}` : "";
+  state.items = await request(`/api/items${query}`);
+  renderGrid(elements.catalogGrid, state.items, isAdminUser());
+}
+
+async function loginAsDefaultAdmin() {

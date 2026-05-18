@@ -76,7 +76,7 @@
           <div class="section-heading catalog-head">
             <div>
               <span class="eyebrow">Каталог</span>
-              <h2>Меню, рестораны и поиск по блюдам</h2>
+              <h2>Menu, рестораны и поиск по блюдам</h2>
             </div>
             <form class="search-form" id="searchForm">
               <input
@@ -145,11 +145,22 @@
                 <h2>Текущий пользователь</h2>
               </div>
             </div>
+            
             <div class="user-panel" id="userPanel">
               <p>Авторизуйтесь, чтобы увидеть данные.</p>
             </div>
-            <button type="button" class="ghost-button" id="editProfileButton">Изменить</button>
-            <form class="panel-form is-hidden" id="profileForm">
+
+            <div style="margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+              <button type="button" class="ghost-button" id="editProfileButton">Изменить данные</button>
+              <button type="button" class="primary-button" id="toggleLikedItemsButton">Понравившиеся блюда</button>
+            </div>
+
+            <div id="likedItemsContainer" class="is-hidden" style="margin-top: 32px;">
+              <h3 style="margin-bottom: 20px; font-size: 1.6rem; color: var(--text);">Ваши любимые блюда</h3>
+              <div class="card-grid" id="likedItemsGrid"></div>
+            </div>
+
+            <form class="panel-form is-hidden" id="profileForm" style="margin-top: 24px;">
               <h3>Редактирование профиля</h3>
               <input type="text" name="name" placeholder="Имя" required minlength="2" />
               <input type="text" name="phone" placeholder="Телефон без +" required />
@@ -218,5 +229,3 @@
     <script src="/script.js"></script>
   </body>
 </html>
-
-
