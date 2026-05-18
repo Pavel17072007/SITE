@@ -47,7 +47,6 @@ const elements = {
   searchInput: document.getElementById("searchInput"),
   itemDetailsModal: null,
   itemDetailsBody: null,
-  // Добавленные элементы для управления понравившимися блюдами
   toggleLikedButton: document.getElementById("toggleLikedItemsButton"),
   likedItemsContainer: document.getElementById("likedItemsContainer"),
   likedItemsGrid: document.getElementById("likedItemsGrid"),
@@ -379,7 +378,6 @@ function ensureItemDetailsModal() {
   elements.itemDetailsBody = modal.querySelector("[data-item-modal-body]");
 }
 
-// Функция загрузки лайкнутых блюд для отображения в профиле
 async function loadLikedItems() {
   try {
     const likedItems = await request("/api/items/liked/list");
@@ -404,7 +402,6 @@ function openItemDetails(item) {
 
   const fullImage = getResizedImageUrl(item.image, 900, 440);
   
-  // Добавлена кнопка "Лайк" (🤍 / ❤️) в структуру модального окна для авторизованных пользователей
   elements.itemDetailsBody.innerHTML = `
     <img class="item-modal-image" src="${fullImage}" alt="${item.title}" />
     <div class="item-modal-meta">
@@ -425,11 +422,9 @@ function openItemDetails(item) {
   elements.itemDetailsModal.classList.remove("is-hidden");
   document.body.style.overflow = "hidden";
 
-  // Логика работы кнопки лайка
   if (state.user) {
     const heartBtn = document.getElementById("likeHeartButton");
     
-    // Проверяем актуальный статус лайка на сервере
     request(`/api/items/${item.id}/liked`)
       .then(data => {
         if (data.liked) {
@@ -438,13 +433,11 @@ function openItemDetails(item) {
       })
       .catch(console.error);
 
-    // Переключение лайка при клике
     heartBtn.addEventListener("click", async () => {
       try {
         const res = await request(`/api/items/${item.id}/like`, { method: "POST" });
         heartBtn.textContent = res.liked ? "❤️" : "🤍";
         
-        // Если блок понравившегося открыт в профиле, динамически обновляем сетку
         if (isProfileRoute() && elements.likedItemsContainer && !elements.likedItemsContainer.classList.contains("is-hidden")) {
           loadLikedItems();
         }
@@ -502,7 +495,7 @@ function renderUser() {
       elements.editProfileButton.hidden = true;
       elements.editProfileButton.textContent = "Изменить";
     }
-    // Скрываем контейнер понравившихся блюд при разлогине
+    
     if (elements.likedItemsContainer) {
       elements.likedItemsContainer.classList.add("is-hidden");
     }
@@ -976,7 +969,6 @@ async function init() {
     setStatus(elements.authStatus, "Используйте код из письма, чтобы задать новый пароль.");
   }
 
-  // Навешивание события на кнопку переключения вкладки "Понравившиеся блюда" в профиле
   if (elements.toggleLikedButton && elements.likedItemsContainer) {
     elements.toggleLikedButton.addEventListener("click", () => {
       const isHidden = elements.likedItemsContainer.classList.contains("is-hidden");
