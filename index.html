@@ -88,6 +88,18 @@
               <button type="submit" class="primary-button">Найти</button>
             </form>
           </div>
+
+          <div id="sortingContainer" style="margin-bottom: 24px; display: none; align-items: center; gap: 12px;">
+            <label for="sortSelect" style="font-weight: 500; color: var(--muted);">Сортировка:</label>
+            <select id="sortSelect" style="padding: 8px 16px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-family: inherit; cursor: pointer; outline: none;">
+              <option value="default">По умолчанию</option>
+              <option value="price_asc">Сначала дешёвые</option>
+              <option value="price_desc">Сначала дорогие</option>
+              <option value="rating_desc">Высокий рейтинг</option>
+              <option value="rating_asc">Низкий рейтинг</option>
+            </select>
+          </div>
+
           <div class="card-grid" id="catalogGrid"></div>
         </section>
 

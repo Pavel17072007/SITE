@@ -30,6 +30,8 @@ const elements = {
   registerLink: document.getElementById("registerLink"),
   popularGrid: document.getElementById("popularGrid"),
   catalogGrid: document.getElementById("catalogGrid"),
+  sortingContainer: document.getElementById("sortingContainer"),
+  sortSelect: document.getElementById("sortSelect"),
   authStatus: document.getElementById("authStatus"),
   profileStatus: document.getElementById("profileStatus"),
   itemStatus: document.getElementById("itemStatus"),
@@ -551,14 +553,41 @@ async function loadPopularItems() {
   renderGrid(elements.popularGrid, state.popularItems, false);
 }
 
-async function loadCatalog(search = "") {
-  if (isLoginRoute() || isRegisterRoute() || isResetPasswordRoute() || isProfileRoute()) {
-    return;
+function applySortingToItems(items, mode) {
+  if (!mode || mode === "default") {
+    return items;
   }
+  const list = Array.from(items || []);
+  switch (mode) {
+    case "price_asc":
+      return list.sort((a, b) => Number(a.price) - Number(b.price));
+    case "price_desc":
+      return list.sort((a, b) => Number(b.price) - Number(a.price));
+    case "rating_asc":
+      return list.sort((a, b) => Number(a.rating) - Number(b.rating));
+    case "rating_desc":
+      return list.sort((a, b) => Number(b.rating) - Number(a.rating));
+    default:
+      return items;
+  }
+}
 
-  const query = search ? `?search=${encodeURIComponent(search)}` : "";
-  state.items = await request(`/api/items${query}`);
-  renderGrid(elements.catalogGrid, state.items, isAdminUser());
+async function loadCatalog(searchQuery = "") {
+  try {
+    let url = "/api/items";
+    if (searchQuery) {
+      url += `?search=${encodeURIComponent(searchQuery)}`;
+    }
+    const data = await request(url);
+    state.items = data;
+
+    const sortMode = elements.sortSelect ? elements.sortSelect.value : "default";
+    const sortedItems = applySortingToItems(state.items, sortMode);
+
+    renderCatalogItems(sortedItems);
+  } catch (error) {
+    setStatus(elements.itemStatus, "Не удалось загрузить каталог", true);
+  }
 }
 
 async function loginAsDefaultAdmin() {
@@ -988,6 +1017,14 @@ async function init() {
     setStatus(elements.itemStatus, "");
   } catch (error) {
     setStatus(elements.itemStatus, error.message, true);
+  }
+  
+  if (elements.sortSelect) {
+    elements.sortSelect.addEventListener("change", () => {
+      const sortMode = elements.sortSelect.value;
+      const sortedItems = applySortingToItems(state.items, sortMode);
+      renderCatalogItems(sortedItems);
+    });
   }
 }
 
