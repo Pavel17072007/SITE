@@ -601,6 +601,16 @@ async function loginAsDefaultAdmin() {
   setStatus(elements.authStatus, "Выполнен вход под администратором по умолчанию.");
 }
 
+function updateSortingVisibility() {
+  if (!elements.sortingContainer) return;
+  
+  if (state.user) {
+    elements.sortingContainer.style.display = "flex";
+  } else {
+    elements.sortingContainer.style.display = "none";
+  }
+}
+
 async function loadCurrentUser() {
   try {
     state.user = await request("/api/auth/me");
@@ -635,8 +645,14 @@ async function loadCurrentUser() {
       setStatus(elements.itemStatus, error.message, true);
     }
   }
-  if (state.items.length) {
-    renderGrid(elements.catalogGrid, state.items, isAdminUser());
+  updateSortingVisibility();
+  if (state.items && state.items.length) {
+    const sortMode = elements.sortSelect ? elements.sortSelect.value : "default";
+    const sortedItems = applySortingToItems(state.items, sortMode);
+    if (elements.catalogGrid) {
+      elements.catalogGrid.innerHTML = "";
+    }
+    renderGrid(elements.catalogGrid, sortedItems, isAdminUser());
   }
 }
 
@@ -861,6 +877,12 @@ elements.logoutButton.addEventListener("click", async () => {
     renderUser();
     resetItemForm();
 
+    updateSortingVisibility();
+    
+    if (elements.sortSelect) {
+      elements.sortSelect.value = "default";
+    }
+
     if (isProfileRoute()) {
       window.location.href = "/auth/login";
       return;
@@ -1023,7 +1045,12 @@ async function init() {
     elements.sortSelect.addEventListener("change", () => {
       const sortMode = elements.sortSelect.value;
       const sortedItems = applySortingToItems(state.items, sortMode);
-      renderCatalogItems(sortedItems);
+      if (elements.catalogGrid) {
+        elements.catalogGrid.innerHTML = "";
+      }
+      if (sortedItems.length) {
+        renderGrid(elements.catalogGrid, sortedItems, isAdminUser());
+      }
     });
   }
 }
