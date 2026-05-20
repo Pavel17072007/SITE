@@ -24,6 +24,10 @@ setInterval(() => {
   }
 }, RESET_CODE_CLEANUP_INTERVAL_MS);
 
+app.get("/cart", (req, res) => {
+  res.sendFile(`${__dirname}/cart.html`);
+});
+
 app.use(errorHandler);
 
 app.use((req, res) => {

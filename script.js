@@ -147,6 +147,10 @@ function isResetPasswordRoute() {
   return ROUTE === "/auth/reset-password";
 }
 
+function isCartRoute() {
+  return ROUTE === "/cart";
+}
+
 function isAdminUser() {
   return Boolean(state.user && state.user.role === "admin");
 }
@@ -280,6 +284,18 @@ function applyRouteLayout() {
       showReset: true,
       activeLink: "",
     });
+    return;
+  }
+
+  if (isCartRoute()) {
+    applyBodyState("home");
+    showSection(elements.home, false);
+    showSection(elements.popularSection, false);
+    showSection(elements.catalog, false);
+    showSection(elements.auth, false);
+    showSection(elements.profileSection, false);
+    showSection(elements.adminSection, false);
+    renderCartPageContent();
     return;
   }
 
@@ -818,7 +834,7 @@ function updateCartFloatingButton() {
     elements.floatingCart.type = "button";
     elements.floatingCart.innerHTML = `🛒<span class="cart-count">0</span>`;
     elements.floatingCart.addEventListener("click", () => {
-      openCartPage();
+      window.location.href = "/cart";
     });
     document.body.appendChild(elements.floatingCart);
   }
@@ -835,71 +851,16 @@ function updateCartFloatingButton() {
   }
 }
 
-function openCartPage() {
-  if (elements.home) showSection(elements.home, false);
-  if (elements.popularSection) showSection(elements.popularSection, false);
-  if (elements.catalog) showSection(elements.catalog, false);
-  if (elements.auth) showSection(elements.auth, false);
-  if (elements.profileSection) showSection(elements.profileSection, false);
-  if (elements.adminSection) showSection(elements.adminSection, false);
-  
-  if (!elements.cartSection) {
-    elements.cartSection = document.createElement("section");
-    elements.cartSection.className = "cart-section";
-    if (elements.main) {
-      elements.main.appendChild(elements.cartSection);
-    } else {
-      document.body.appendChild(elements.cartSection);
-    }
-    
-    elements.cartSection.addEventListener("click", (event) => {
-      const buySingle = event.target.closest(".buy-single-btn");
-      const deleteSingle = event.target.closest(".delete-single-btn");
-      
-      if (buySingle) {
-        const idx = parseInt(buySingle.dataset.index, 10);
-        alert("Товар успешно заказан");
-        let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
-        currentCart.splice(idx, 1);
-        localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
-        updateCartFloatingButton();
-        renderCartPageContent();
-      }
-      
-      if (deleteSingle) {
-        const idx = parseInt(deleteSingle.dataset.index, 10);
-        let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
-        currentCart.splice(idx, 1);
-        localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
-        updateCartFloatingButton();
-        renderCartPageContent();
-      }
-    });
-  }
-  
-  elements.cartSection.classList.remove("is-hidden");
-  renderCartPageContent();
-}
-
-function closeCartPage() {
-  if (elements.cartSection) {
-    elements.cartSection.classList.add("is-hidden");
-  }
-  applyRouteLayout();
-}
-
 function renderCartPageContent() {
-  if (!elements.cartSection) return;
+  const cartContentEl = document.getElementById("cartContent");
+  if (!cartContentEl) return;
   
   const cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
   
   if (cart.length === 0) {
-    elements.cartSection.innerHTML = `
-      <a class="cart-back-link" id="cartBackBtn">← Назад к покупкам</a>
-      <h2>Корзина</h2>
+    cartContentEl.innerHTML = `
       <div class="empty-state" style="margin-top: 20px;">Ваша корзина пуста.</div>
     `;
-    document.getElementById("cartBackBtn")?.addEventListener("click", closeCartPage);
     return;
   }
   
@@ -925,9 +886,7 @@ function renderCartPageContent() {
     `;
   }).join("");
   
-  elements.cartSection.innerHTML = `
-    <a class="cart-back-link" id="cartBackBtn">← Назад к покупкам</a>
-    <h2>Корзина</h2>
+  cartContentEl.innerHTML = `
     <div style="margin-top: 20px;">
       ${itemsHtml}
     </div>
@@ -940,7 +899,30 @@ function renderCartPageContent() {
     </div>
   `;
   
-  document.getElementById("cartBackBtn")?.addEventListener("click", closeCartPage);
+  // Attach event listeners for individual items
+  cartContentEl.addEventListener("click", (event) => {
+    const buySingle = event.target.closest(".buy-single-btn");
+    const deleteSingle = event.target.closest(".delete-single-btn");
+    
+    if (buySingle) {
+      const idx = parseInt(buySingle.dataset.index, 10);
+      alert("Товар успешно заказан");
+      let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+      currentCart.splice(idx, 1);
+      localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
+      updateCartFloatingButton();
+      renderCartPageContent();
+    }
+    
+    if (deleteSingle) {
+      const idx = parseInt(deleteSingle.dataset.index, 10);
+      let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+      currentCart.splice(idx, 1);
+      localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
+      updateCartFloatingButton();
+      renderCartPageContent();
+    }
+  });
   
   document.getElementById("buyAllCartBtn")?.addEventListener("click", () => {
     alert("Товары успешно заказаны");
@@ -956,7 +938,7 @@ function renderCartPageContent() {
   });
 }
 
-elements.registerForm.addEventListener("submit", async (event) => {
+elements.registerForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(elements.registerForm).entries());
   const passwordError = getPasswordValidationError(String(payload.password || ""));
@@ -980,7 +962,7 @@ elements.registerForm.addEventListener("submit", async (event) => {
   }
 });
 
-elements.loginForm.addEventListener("submit", async (event) => {
+elements.loginForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(elements.loginForm).entries());
 
@@ -1112,7 +1094,7 @@ elements.resetPasswordForm?.addEventListener("submit", async (event) => {
   }
 });
 
-elements.logoutButton.addEventListener("click", async () => {
+elements.logoutButton?.addEventListener("click", async () => {
   try {
     await request("/api/auth/logout", { method: "POST" });
     state.user = null;
@@ -1142,7 +1124,7 @@ elements.logoutButton.addEventListener("click", async () => {
   }
 });
 
-elements.searchForm.addEventListener("submit", async (event) => {
+elements.searchForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   try {
@@ -1152,7 +1134,7 @@ elements.searchForm.addEventListener("submit", async (event) => {
   }
 });
 
-elements.itemForm.addEventListener("submit", async (event) => {
+elements.itemForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const formData = new FormData(elements.itemForm);
@@ -1181,9 +1163,9 @@ elements.itemForm.addEventListener("submit", async (event) => {
   }
 });
 
-elements.resetItemForm.addEventListener("click", resetItemForm);
+elements.resetItemForm?.addEventListener("click", resetItemForm);
 
-elements.catalogGrid.addEventListener("click", async (event) => {
+elements.catalogGrid?.addEventListener("click", async (event) => {
   const addButton = event.target.closest("[data-add-id]");
   if (addButton) {
     event.stopPropagation();
@@ -1243,7 +1225,7 @@ elements.catalogGrid.addEventListener("click", async (event) => {
   }
 });
 
-elements.popularGrid.addEventListener("click", (event) => {
+elements.popularGrid?.addEventListener("click", (event) => {
   const addButton = event.target.closest("[data-add-id]");
   if (addButton) {
     event.stopPropagation();
@@ -1259,8 +1241,8 @@ elements.popularGrid.addEventListener("click", (event) => {
   openItemDetails(item);
 });
 
-elements.catalogGrid.addEventListener("keydown", handleFoodCardKeydown);
-elements.popularGrid.addEventListener("keydown", handleFoodCardKeydown);
+elements.catalogGrid?.addEventListener("keydown", handleFoodCardKeydown);
+  elements.popularGrid?.addEventListener("keydown", handleFoodCardKeydown);
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
