@@ -52,6 +52,9 @@ const elements = {
   toggleLikedButton: document.getElementById("toggleLikedItemsButton"),
   likedItemsContainer: document.getElementById("likedItemsContainer"),
   likedItemsGrid: document.getElementById("likedItemsGrid"),
+  // Элементы корзины
+  floatingCart: null,
+  cartSection: null,
 };
 
 function setStatus(node, message, isError = false) {
@@ -333,6 +336,7 @@ function renderFoodCard(item, showAdminActions = false) {
         <h3>${item.title}</h3>
         <div class="food-actions">
           <span class="food-price">${Number(item.price).toFixed(2)} BYN</span>
+          <button class="ghost-button cart-add-btn" type="button" data-add-id="${item.id}" style="margin-left: auto; font-weight: bold; font-size: 1.2rem; padding: 2px 10px; border-radius: 4px;">+</button>
           ${
             showAdminActions
               ? `<button class="ghost-button" type="button" data-edit-id="${item.id}">Редактировать</button>
@@ -584,7 +588,7 @@ async function loadCatalog(searchQuery = "") {
     const sortMode = elements.sortSelect ? elements.sortSelect.value : "default";
     const sortedItems = applySortingToItems(state.items, sortMode);
 
-    renderCatalogItems(sortedItems);
+    renderGrid(elements.catalogGrid, sortedItems, isAdminUser());
   } catch (error) {
     setStatus(elements.itemStatus, "Не удалось загрузить каталог", true);
   }
@@ -712,6 +716,244 @@ async function restorePendingItemEditIfNeeded() {
 
   sessionStorage.removeItem(PENDING_EDIT_ITEM_ID_KEY);
   await openItemEditorById(pendingId);
+}
+
+const cartStyle = document.createElement("style");
+cartStyle.textContent = `
+  .floating-cart-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background-color: #b42318;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: transform 0.2s;
+  }
+  .floating-cart-btn:hover {
+    transform: scale(1.05);
+  }
+  .floating-cart-btn .cart-count {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background-color: #6f6559;
+    color: white;
+    font-size: 12px;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-weight: bold;
+  }
+  .cart-section {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  .cart-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .cart-item-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .cart-item-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+  }
+  .cart-buttons-container {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .cart-back-link {
+    display: inline-block;
+    margin-bottom: 20px;
+    color: #6f6559;
+    text-decoration: none;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .cart-back-link:hover {
+    text-decoration: underline;
+  }
+`;
+document.head.appendChild(cartStyle);
+
+function addToCart(id) {
+  const item = findItemById(id);
+  if (!item) return;
+  
+  let cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+  cart.push(item);
+  localStorage.setItem("flashfood_cart", JSON.stringify(cart));
+  
+  updateCartFloatingButton();
+}
+
+function updateCartFloatingButton() {
+  let cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+  
+  if (!elements.floatingCart) {
+    elements.floatingCart = document.createElement("button");
+    elements.floatingCart.className = "floating-cart-btn";
+    elements.floatingCart.type = "button";
+    elements.floatingCart.innerHTML = `🛒<span class="cart-count">0</span>`;
+    elements.floatingCart.addEventListener("click", () => {
+      openCartPage();
+    });
+    document.body.appendChild(elements.floatingCart);
+  }
+  
+  const countSpan = elements.floatingCart.querySelector(".cart-count");
+  if (countSpan) {
+    countSpan.textContent = cart.length;
+  }
+  
+  if (cart.length > 0) {
+    elements.floatingCart.style.display = "flex";
+  } else {
+    elements.floatingCart.style.display = "none";
+  }
+}
+
+function openCartPage() {
+  if (elements.home) showSection(elements.home, false);
+  if (elements.popularSection) showSection(elements.popularSection, false);
+  if (elements.catalog) showSection(elements.catalog, false);
+  if (elements.auth) showSection(elements.auth, false);
+  if (elements.profileSection) showSection(elements.profileSection, false);
+  if (elements.adminSection) showSection(elements.adminSection, false);
+  
+  if (!elements.cartSection) {
+    elements.cartSection = document.createElement("section");
+    elements.cartSection.className = "cart-section";
+    if (elements.main) {
+      elements.main.appendChild(elements.cartSection);
+    } else {
+      document.body.appendChild(elements.cartSection);
+    }
+    
+    elements.cartSection.addEventListener("click", (event) => {
+      const buySingle = event.target.closest(".buy-single-btn");
+      const deleteSingle = event.target.closest(".delete-single-btn");
+      
+      if (buySingle) {
+        const idx = parseInt(buySingle.dataset.index, 10);
+        alert("Товар успешно заказан");
+        let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+        currentCart.splice(idx, 1);
+        localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
+        updateCartFloatingButton();
+        renderCartPageContent();
+      }
+      
+      if (deleteSingle) {
+        const idx = parseInt(deleteSingle.dataset.index, 10);
+        let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+        currentCart.splice(idx, 1);
+        localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
+        updateCartFloatingButton();
+        renderCartPageContent();
+      }
+    });
+  }
+  
+  elements.cartSection.classList.remove("is-hidden");
+  renderCartPageContent();
+}
+
+function closeCartPage() {
+  if (elements.cartSection) {
+    elements.cartSection.classList.add("is-hidden");
+  }
+  applyRouteLayout();
+}
+
+function renderCartPageContent() {
+  if (!elements.cartSection) return;
+  
+  const cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+  
+  if (cart.length === 0) {
+    elements.cartSection.innerHTML = `
+      <a class="cart-back-link" id="cartBackBtn">← Назад к покупкам</a>
+      <h2>Корзина</h2>
+      <div class="empty-state" style="margin-top: 20px;">Ваша корзина пуста.</div>
+    `;
+    document.getElementById("cartBackBtn")?.addEventListener("click", closeCartPage);
+    return;
+  }
+  
+  const totalPrice = cart.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  
+  let itemsHtml = cart.map((item, index) => {
+    const thumbImage = getResizedImageUrl(item.image, 120, 120);
+    return `
+      <div class="cart-item-row" data-index="${index}">
+        <div class="cart-item-info">
+          <img src="${thumbImage}" alt="${item.title}" class="cart-item-img" />
+          <div>
+            <h4 style="margin: 0 0 4px 0;">${item.title}</h4>
+            <span style="color: #6f6559; font-size: 0.9rem;">${item.restaurant}</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <strong style="color: #b42318;">${Number(item.price).toFixed(2)} BYN</strong>
+          <button class="ghost-button buy-single-btn" data-index="${index}" type="button">Купить</button>
+          <button class="ghost-button delete-single-btn" data-index="${index}" type="button" style="color: #b42318; border-color: #b42318;">Удалить</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+  
+  elements.cartSection.innerHTML = `
+    <a class="cart-back-link" id="cartBackBtn">← Назад к покупкам</a>
+    <h2>Корзина</h2>
+    <div style="margin-top: 20px;">
+      ${itemsHtml}
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 24px; padding-top: 16px; border-top: 2px solid #6f6559;">
+      <h3>Итого: <span style="color: #b42318;">${totalPrice.toFixed(2)} BYN</span></h3>
+      <div class="cart-buttons-container">
+        <button class="ghost-button" id="buyAllCartBtn" type="button" style="background-color: #b42318; color: white; border: none;">Купить всё</button>
+        <button class="ghost-button" id="deleteAllCartBtn" type="button" style="color: #b42318; border-color: #b42318;">Очистить корзину</button>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById("cartBackBtn")?.addEventListener("click", closeCartPage);
+  
+  document.getElementById("buyAllCartBtn")?.addEventListener("click", () => {
+    alert("Товары успешно заказаны");
+    localStorage.setItem("flashfood_cart", "[]");
+    updateCartFloatingButton();
+    renderCartPageContent();
+  });
+  
+  document.getElementById("deleteAllCartBtn")?.addEventListener("click", () => {
+    localStorage.setItem("flashfood_cart", "[]");
+    updateCartFloatingButton();
+    renderCartPageContent();
+  });
 }
 
 elements.registerForm.addEventListener("submit", async (event) => {
@@ -942,6 +1184,13 @@ elements.itemForm.addEventListener("submit", async (event) => {
 elements.resetItemForm.addEventListener("click", resetItemForm);
 
 elements.catalogGrid.addEventListener("click", async (event) => {
+  const addButton = event.target.closest("[data-add-id]");
+  if (addButton) {
+    event.stopPropagation();
+    addToCart(addButton.dataset.addId);
+    return;
+  }
+
   const editButton = event.target.closest("[data-edit-id]");
   const deleteButton = event.target.closest("[data-delete-id]");
   const card = event.target.closest("[data-view-id]");
@@ -995,6 +1244,13 @@ elements.catalogGrid.addEventListener("click", async (event) => {
 });
 
 elements.popularGrid.addEventListener("click", (event) => {
+  const addButton = event.target.closest("[data-add-id]");
+  if (addButton) {
+    event.stopPropagation();
+    addToCart(addButton.dataset.addId);
+    return;
+  }
+
   const card = event.target.closest("[data-view-id]");
   if (!card) {
     return;
@@ -1053,6 +1309,8 @@ async function init() {
       }
     });
   }
+
+  updateCartFloatingButton();
 }
 
 init();

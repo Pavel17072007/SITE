@@ -8,15 +8,12 @@ const itemsRoutes = require("./routes/items");
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemsRoutes);
 
-// Cleanup expired reset codes every minute
 setInterval(() => {
   const now = Date.now();
   const resetCodes = getResetCodes();
@@ -27,15 +24,12 @@ setInterval(() => {
   }
 }, RESET_CODE_CLEANUP_INTERVAL_MS);
 
-// Error handling
 app.use(errorHandler);
 
-// Fallback handler
 app.use((req, res) => {
   res.sendFile(`${__dirname}/index.html`);
 });
 
-// Start server
 app.listen(PORT, async () => {
   try {
     await db.query("SELECT 1");
