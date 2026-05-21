@@ -5,6 +5,7 @@ const { getResetCodes } = require("./auth");
 const { errorHandler } = require("./middleware");
 const authRoutes = require("./routes/auth");
 const itemsRoutes = require("./routes/items");
+const cartRoutes = require("./routes/cart"); // ДОБАВЛЕНО: импорт маршрутов корзины
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.static(__dirname));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/items", itemsRoutes);
+app.use("/api/cart", cartRoutes); // ДОБАВЛЕНО: использование маршрутов корзины
 
 setInterval(() => {
   const now = Date.now();

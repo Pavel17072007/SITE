@@ -11,6 +11,7 @@ const state = {
   items: [],
   popularItems: [],
   editingItemId: null,
+  cart: [], // ДОБАВЛЕНО: хранение состояния корзины
 };
 
 const elements = {
@@ -52,67 +53,41 @@ const elements = {
   toggleLikedButton: document.getElementById("toggleLikedItemsButton"),
   likedItemsContainer: document.getElementById("likedItemsContainer"),
   likedItemsGrid: document.getElementById("likedItemsGrid"),
-  // Элементы корзины
   floatingCart: null,
   cartSection: document.getElementById("cartSection"),
   cartContent: document.getElementById("cartContent"),
 };
 
 function setStatus(node, message, isError = false) {
-  if (!node) {
-    return;
-  }
-
+  if (!node) return;
   node.textContent = message;
   node.style.color = isError ? "#b42318" : "#6f6559";
 }
 
 function getPasswordValidationError(password) {
-  if (password.length < 6) {
-    return "Пароль должен содержать минимум 6 символов.";
-  }
-  if (!/\p{Lu}/u.test(password)) {
-    return "Пароль должен содержать хотя бы одну заглавную букву.";
-  }
-  if (!/\p{Nd}/u.test(password)) {
-    return "Пароль должен содержать хотя бы одну цифру.";
-  }
-  if (!/[^\p{L}\p{N}]/u.test(password)) {
-    return "Пароль должен содержать хотя бы один символ.";
-  }
+  if (password.length < 6) return "Пароль должен содержать минимум 6 символов.";
+  if (!/\p{Lu}/u.test(password)) return "Пароль должен содержать хотя бы одну заглавную букву.";
+  if (!/\p{Nd}/u.test(password)) return "Пароль должен содержать хотя бы одну цифру.";
+  if (!/[^\p{L}\p{N}]/u.test(password)) return "Пароль должен содержать хотя бы один символ.";
   return null;
 }
 
 function formatCreatedAt(value) {
-  if (!value) {
-    return "сейчас";
-  }
-
+  if (!value) return "сейчас";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ru-RU", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function formatPhoneForDisplay(phone) {
   const raw = String(phone || "").trim();
-  if (!raw) {
-    return "-";
-  }
+  if (!raw) return "-";
   return raw.startsWith("+") ? raw : `+${raw}`;
 }
 
 function getResizedImageUrl(url, width, height) {
   const source = String(url || "").trim();
-  if (!source) {
-    return source;
-  }
-
+  if (!source) return source;
   try {
     const parsed = new URL(source, window.location.origin);
     if (parsed.hostname.includes("images.unsplash.com")) {
@@ -128,39 +103,19 @@ function getResizedImageUrl(url, width, height) {
   }
 }
 
-function isHomeRoute() {
-  return ROUTE === "/";
-}
-
-function isLoginRoute() {
-  return ROUTE === "/auth/login";
-}
-
-function isRegisterRoute() {
-  return ROUTE === "/auth/register";
-}
-
-function isProfileRoute() {
-  return ROUTE === "/profile";
-}
-
-function isResetPasswordRoute() {
-  return ROUTE === "/auth/reset-password";
-}
-
-function isCartRoute() {
-  return ROUTE === "/cart";
-}
+function isHomeRoute() { return ROUTE === "/"; }
+function isLoginRoute() { return ROUTE === "/auth/login"; }
+function isRegisterRoute() { return ROUTE === "/auth/register"; }
+function isProfileRoute() { return ROUTE === "/profile"; }
+function isResetPasswordRoute() { return ROUTE === "/auth/reset-password"; }
+function isCartRoute() { return ROUTE === "/cart"; }
 
 function isAdminUser() {
   return Boolean(state.user && state.user.role === "admin");
 }
 
 function showSection(section, show) {
-  if (!section) {
-    return;
-  }
-
+  if (!section) return;
   section.classList.toggle("is-hidden", !show);
 }
 
@@ -184,14 +139,9 @@ function isAuthRoute() {
 }
 
 function ensureResetCodeField() {
-  if (!elements.resetPasswordForm) {
-    return null;
-  }
-
+  if (!elements.resetPasswordForm) return null;
   let codeInput = elements.resetPasswordForm.querySelector('input[name="code"]');
-  if (codeInput) {
-    return codeInput;
-  }
+  if (codeInput) return codeInput;
 
   codeInput = document.createElement("input");
   codeInput.type = "text";
@@ -207,7 +157,6 @@ function ensureResetCodeField() {
   } else {
     elements.resetPasswordForm.appendChild(codeInput);
   }
-
   return codeInput;
 }
 
@@ -382,9 +331,7 @@ function findItemById(id) {
 }
 
 function ensureItemDetailsModal() {
-  if (elements.itemDetailsModal && elements.itemDetailsBody) {
-    return;
-  }
+  if (elements.itemDetailsModal && elements.itemDetailsBody) return;
 
   const modal = document.createElement("div");
   modal.className = "item-modal is-hidden";
@@ -420,14 +367,10 @@ async function loadLikedItems() {
 }
 
 function openItemDetails(item) {
-  if (!item) {
-    return;
-  }
+  if (!item) return;
 
   ensureItemDetailsModal();
-  if (!elements.itemDetailsModal || !elements.itemDetailsBody) {
-    return;
-  }
+  if (!elements.itemDetailsModal || !elements.itemDetailsBody) return;
 
   const fullImage = getResizedImageUrl(item.image, 900, 440);
   
@@ -453,12 +396,9 @@ function openItemDetails(item) {
 
   if (state.user) {
     const heartBtn = document.getElementById("likeHeartButton");
-    
     request(`/api/items/${item.id}/liked`)
       .then(data => {
-        if (data.liked) {
-          heartBtn.textContent = "❤️";
-        }
+        if (data.liked) heartBtn.textContent = "❤️";
       })
       .catch(console.error);
 
@@ -478,36 +418,26 @@ function openItemDetails(item) {
 }
 
 function closeItemDetailsModal() {
-  if (!elements.itemDetailsModal) {
-    return;
-  }
+  if (!elements.itemDetailsModal) return;
   elements.itemDetailsModal.classList.add("is-hidden");
   document.body.style.overflow = "";
 }
 
 function handleFoodCardKeydown(event) {
   const card = event.target.closest("[data-view-id]");
-  if (!card) {
-    return;
-  }
-  if (event.key !== "Enter" && event.key !== " ") {
-    return;
-  }
+  if (!card) return;
+  if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   const item = findItemById(card.dataset.viewId);
   openItemDetails(item);
 }
 
 function renderGrid(node, items, allowManage = false) {
-  if (!node) {
-    return;
-  }
-
+  if (!node) return;
   if (!items.length) {
     node.innerHTML = '<div class="empty-state">Ничего не найдено. Попробуйте другой запрос.</div>';
     return;
   }
-
   node.innerHTML = items.map((item) => renderFoodCard(item, allowManage)).join("");
 }
 
@@ -537,10 +467,7 @@ function renderUser() {
     return;
   }
 
-  setStatus(
-    elements.authStatus,
-    `Вы вошли как ${state.user.email}.`
-  );
+  setStatus(elements.authStatus, `Вы вошли как ${state.user.email}.`);
 
   elements.userPanel.innerHTML = `
     <article class="user-card">
@@ -572,39 +499,28 @@ function renderUser() {
 }
 
 async function loadPopularItems() {
-  if (isLoginRoute() || isRegisterRoute() || isResetPasswordRoute() || isProfileRoute()) {
-    return;
-  }
-
+  if (isLoginRoute() || isRegisterRoute() || isResetPasswordRoute() || isProfileRoute()) return;
   state.popularItems = await request("/api/items?popular=true");
   renderGrid(elements.popularGrid, state.popularItems, false);
 }
 
 function applySortingToItems(items, mode) {
-  if (!mode || mode === "default") {
-    return items;
-  }
+  if (!mode || mode === "default") return items;
   const list = Array.from(items || []);
   switch (mode) {
-    case "price_asc":
-      return list.sort((a, b) => Number(a.price) - Number(b.price));
-    case "price_desc":
-      return list.sort((a, b) => Number(b.price) - Number(a.price));
-    case "rating_asc":
-      return list.sort((a, b) => Number(a.rating) - Number(b.rating));
-    case "rating_desc":
-      return list.sort((a, b) => Number(b.rating) - Number(a.rating));
-    default:
-      return items;
+    case "price_asc": return list.sort((a, b) => Number(a.price) - Number(b.price));
+    case "price_desc": return list.sort((a, b) => Number(b.price) - Number(a.price));
+    case "rating_asc": return list.sort((a, b) => Number(a.rating) - Number(b.rating));
+    case "rating_desc": return list.sort((a, b) => Number(b.rating) - Number(a.rating));
+    default: return items;
   }
 }
 
 async function loadCatalog(searchQuery = "") {
   try {
     let url = "/api/items";
-    if (searchQuery) {
-      url += `?search=${encodeURIComponent(searchQuery)}`;
-    }
+    if (searchQuery) url += `?search=${encodeURIComponent(searchQuery)}`;
+    
     const data = await request(url);
     state.items = data;
 
@@ -630,11 +546,25 @@ async function loginAsDefaultAdmin() {
 
 function updateSortingVisibility() {
   if (!elements.sortingContainer) return;
+  elements.sortingContainer.style.display = state.user ? "flex" : "none";
+}
+
+// ДОБАВЛЕНО: Функция для загрузки корзины с бэкенда
+async function loadCart() {
+  if (!state.user) {
+    state.cart = [];
+    updateCartFloatingButton();
+    return;
+  }
   
-  if (state.user) {
-    elements.sortingContainer.style.display = "flex";
-  } else {
-    elements.sortingContainer.style.display = "none";
+  try {
+    state.cart = await request("/api/cart");
+    updateCartFloatingButton();
+    if (isCartRoute()) {
+      renderCartPageContent();
+    }
+  } catch (error) {
+    console.error("Ошибка загрузки корзины:", error);
   }
 }
 
@@ -646,7 +576,8 @@ async function loadCurrentUser() {
       return;
     }
   } catch (error) {
-    if (isProfileRoute()) {
+    // ОБНОВЛЕНО: Проверка защиты корзины
+    if (isProfileRoute() || isCartRoute()) {
       window.location.href = "/auth/login";
       return;
     }
@@ -665,6 +596,14 @@ async function loadCurrentUser() {
   }
 
   renderUser();
+  
+  // ДОБАВЛЕНО: Загрузка корзины
+  if (state.user) {
+    await loadCart();
+  } else {
+    updateCartFloatingButton();
+  }
+
   if (isProfileRoute()) {
     try {
       await restorePendingItemEditIfNeeded();
@@ -709,33 +648,20 @@ function fillItemForm(item) {
 
 async function openItemEditorById(itemId) {
   const id = Number(itemId);
-  if (!Number.isFinite(id) || id <= 0) {
-    return;
-  }
+  if (!Number.isFinite(id) || id <= 0) return;
 
   let item = state.items.find((entry) => Number(entry.id) === id);
-  if (!item) {
-    item = state.popularItems.find((entry) => Number(entry.id) === id);
-  }
-  if (!item) {
-    item = await request(`/api/items/${id}`);
-  }
-  if (!item) {
-    throw new Error("Блюдо не найдено");
-  }
+  if (!item) item = state.popularItems.find((entry) => Number(entry.id) === id);
+  if (!item) item = await request(`/api/items/${id}`);
+  if (!item) throw new Error("Блюдо не найдено");
 
   fillItemForm(item);
 }
 
 async function restorePendingItemEditIfNeeded() {
-  if (!isProfileRoute() || !isAdminUser()) {
-    return;
-  }
-
+  if (!isProfileRoute() || !isAdminUser()) return;
   const pendingId = sessionStorage.getItem(PENDING_EDIT_ITEM_ID_KEY);
-  if (!pendingId) {
-    return;
-  }
+  if (!pendingId) return;
 
   sessionStorage.removeItem(PENDING_EDIT_ITEM_ID_KEY);
   await openItemEditorById(pendingId);
@@ -762,9 +688,7 @@ cartStyle.textContent = `
     z-index: 1000;
     transition: transform 0.2s;
   }
-  .floating-cart-btn:hover {
-    transform: scale(1.05);
-  }
+  .floating-cart-btn:hover { transform: scale(1.05); }
   .floating-cart-btn .cart-count {
     position: absolute;
     top: -2px;
@@ -815,25 +739,43 @@ cartStyle.textContent = `
     font-weight: 500;
     cursor: pointer;
   }
-  .cart-back-link:hover {
-    text-decoration: underline;
-  }
+  .cart-back-link:hover { text-decoration: underline; }
 `;
 document.head.appendChild(cartStyle);
 
-function addToCart(id) {
+// ОБНОВЛЕНО: Добавление в корзину через API
+async function addToCart(id) {
+  if (!state.user) {
+    alert("Пожалуйста, авторизуйтесь для добавления товаров в корзину");
+    window.location.href = "/auth/login";
+    return;
+  }
+  
   const item = findItemById(id);
   if (!item) return;
   
-  let cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
-  cart.push(item);
-  localStorage.setItem("flashfood_cart", JSON.stringify(cart));
-  
-  updateCartFloatingButton();
+  try {
+    await request("/api/cart", {
+      method: "POST",
+      body: JSON.stringify({ itemId: id, quantity: 1 })
+    });
+    await loadCart(); 
+  } catch (error) {
+    console.error("Ошибка при добавлении в корзину:", error);
+    alert(error.message || "Не удалось добавить товар");
+  }
 }
 
+// ОБНОВЛЕНО: Подсчет на основе данных с сервера
 function updateCartFloatingButton() {
-  let cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
+  if (!state.user) {
+    if (elements.floatingCart) {
+      elements.floatingCart.style.display = "none";
+    }
+    return;
+  }
+  
+  const totalItems = state.cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
   
   if (!elements.floatingCart) {
     elements.floatingCart = document.createElement("button");
@@ -847,47 +789,46 @@ function updateCartFloatingButton() {
   }
   
   const countSpan = elements.floatingCart.querySelector(".cart-count");
-  if (countSpan) {
-    countSpan.textContent = cart.length;
-  }
+  if (countSpan) countSpan.textContent = totalItems;
   
-  if (cart.length > 0) {
-    elements.floatingCart.style.display = "flex";
-  } else {
-    elements.floatingCart.style.display = "none";
-  }
+  elements.floatingCart.style.display = totalItems > 0 ? "flex" : "none";
 }
 
+// ОБНОВЛЕНО: Рендер корзины на основе серверных данных и управление ею
 function renderCartPageContent() {
   const cartContentEl = elements.cartContent;
   if (!cartContentEl) return;
-  
-  const cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
-  
-  if (cart.length === 0) {
-    cartContentEl.innerHTML = `
-      <div class="empty-state" style="margin-top: 20px;">Ваша корзина пуста.</div>
-    `;
+
+  if (!state.user) {
+    window.location.href = "/auth/login";
     return;
   }
   
-  const totalPrice = cart.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  if (state.cart.length === 0) {
+    cartContentEl.innerHTML = `<div class="empty-state" style="margin-top: 20px;">Ваша корзина пуста.</div>`;
+    return;
+  }
   
-  let itemsHtml = cart.map((item, index) => {
+  const totalPrice = state.cart.reduce((sum, item) => sum + (Number(item.price || 0) * (item.quantity || 1)), 0);
+  
+  let itemsHtml = state.cart.map((item) => {
     const thumbImage = getResizedImageUrl(item.image, 120, 120);
+    const quantityLabel = item.quantity > 1 ? ` (x${item.quantity})` : '';
+    const itemTotalPrice = (Number(item.price) * (item.quantity || 1)).toFixed(2);
+    
     return `
-      <div class="cart-item-row" data-index="${index}">
+      <div class="cart-item-row" data-id="${item.id}">
         <div class="cart-item-info">
           <img src="${thumbImage}" alt="${item.title}" class="cart-item-img" />
           <div>
-            <h4 style="margin: 0 0 4px 0;">${item.title}</h4>
+            <h4 style="margin: 0 0 4px 0;">${item.title}${quantityLabel}</h4>
             <span style="color: #6f6559; font-size: 0.9rem;">${item.restaurant}</span>
           </div>
         </div>
         <div style="display: flex; align-items: center; gap: 16px;">
-          <strong style="color: #b42318;">${Number(item.price).toFixed(2)} BYN</strong>
-          <button class="ghost-button buy-single-btn" data-index="${index}" type="button">Купить</button>
-          <button class="ghost-button delete-single-btn" data-index="${index}" type="button" style="color: #b42318; border-color: #b42318;">Удалить</button>
+          <strong style="color: #b42318;">${itemTotalPrice} BYN</strong>
+          <button class="ghost-button buy-single-btn" data-id="${item.id}" type="button">Купить</button>
+          <button class="ghost-button delete-single-btn" data-id="${item.id}" type="button" style="color: #b42318; border-color: #b42318;">Удалить</button>
         </div>
       </div>
     `;
@@ -906,42 +847,41 @@ function renderCartPageContent() {
     </div>
   `;
   
-  // Attach event listeners for individual items
-  cartContentEl.addEventListener("click", (event) => {
+  cartContentEl.onclick = async (event) => {
     const buySingle = event.target.closest(".buy-single-btn");
     const deleteSingle = event.target.closest(".delete-single-btn");
     
     if (buySingle) {
-      const idx = parseInt(buySingle.dataset.index, 10);
-      alert("Товар успешно заказан");
-      let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
-      currentCart.splice(idx, 1);
-      localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
-      updateCartFloatingButton();
-      renderCartPageContent();
+      const id = buySingle.dataset.id;
+      try {
+        await request(`/api/cart/${id}`, { method: "DELETE" });
+        alert("Товар успешно заказан");
+        await loadCart();
+      } catch(e) { console.error(e); }
     }
     
     if (deleteSingle) {
-      const idx = parseInt(deleteSingle.dataset.index, 10);
-      let currentCart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
-      currentCart.splice(idx, 1);
-      localStorage.setItem("flashfood_cart", JSON.stringify(currentCart));
-      updateCartFloatingButton();
-      renderCartPageContent();
+      const id = deleteSingle.dataset.id;
+      try {
+        await request(`/api/cart/${id}`, { method: "DELETE" });
+        await loadCart();
+      } catch(e) { console.error(e); }
     }
+  };
+  
+  document.getElementById("buyAllCartBtn")?.addEventListener("click", async () => {
+    try {
+      await request("/api/cart", { method: "DELETE" });
+      alert("Товары успешно заказаны");
+      await loadCart();
+    } catch(e) { console.error(e); }
   });
   
-  document.getElementById("buyAllCartBtn")?.addEventListener("click", () => {
-    alert("Товары успешно заказаны");
-    localStorage.setItem("flashfood_cart", "[]");
-    updateCartFloatingButton();
-    renderCartPageContent();
-  });
-  
-  document.getElementById("deleteAllCartBtn")?.addEventListener("click", () => {
-    localStorage.setItem("flashfood_cart", "[]");
-    updateCartFloatingButton();
-    renderCartPageContent();
+  document.getElementById("deleteAllCartBtn")?.addEventListener("click", async () => {
+    try {
+      await request("/api/cart", { method: "DELETE" });
+      await loadCart();
+    } catch(e) { console.error(e); }
   });
 }
 
@@ -1008,9 +948,7 @@ elements.profileForm?.addEventListener("submit", async (event) => {
     state.user = response.user;
     renderUser();
     elements.profileForm?.classList.add("is-hidden");
-    if (elements.editProfileButton) {
-      elements.editProfileButton.textContent = "Изменить";
-    }
+    if (elements.editProfileButton) elements.editProfileButton.textContent = "Изменить";
     setStatus(elements.profileStatus, response.message || "Профиль успешно обновлен.");
   } catch (error) {
     setStatus(elements.profileStatus, error.message, true);
@@ -1019,9 +957,7 @@ elements.profileForm?.addEventListener("submit", async (event) => {
 
 elements.editProfileButton?.addEventListener("click", () => {
   const isHidden = elements.profileForm?.classList.contains("is-hidden");
-  if (!elements.profileForm || !state.user) {
-    return;
-  }
+  if (!elements.profileForm || !state.user) return;
 
   if (isHidden) {
     elements.profileForm.elements.name.value = state.user.name || "";
@@ -1051,11 +987,7 @@ elements.forgotPasswordButton?.addEventListener("click", async () => {
 
     ensureResetCodeField();
     elements.resetPasswordForm?.classList.remove("is-hidden");
-
-    setStatus(
-      elements.authStatus,
-      response.message || "Если такой email существует, код восстановления отправлен."
-    );
+    setStatus(elements.authStatus, response.message || "Если такой email существует, код восстановления отправлен.");
   } catch (error) {
     setStatus(elements.authStatus, error.message, true);
   }
@@ -1101,18 +1033,18 @@ elements.resetPasswordForm?.addEventListener("submit", async (event) => {
   }
 });
 
+// ОБНОВЛЕНО: Очистка состояния корзины при выходе
 elements.logoutButton?.addEventListener("click", async () => {
   try {
     await request("/api/auth/logout", { method: "POST" });
     state.user = null;
+    state.cart = []; // Очистка
     renderUser();
     resetItemForm();
-
     updateSortingVisibility();
+    updateCartFloatingButton(); // Обновление интерфейса
     
-    if (elements.sortSelect) {
-      elements.sortSelect.value = "default";
-    }
+    if (elements.sortSelect) elements.sortSelect.value = "default";
 
     if (isProfileRoute()) {
       window.location.href = "/auth/login";
@@ -1133,7 +1065,6 @@ elements.logoutButton?.addEventListener("click", async () => {
 
 elements.searchForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   try {
     await loadCatalog(elements.searchInput.value.trim());
   } catch (error) {
@@ -1172,11 +1103,12 @@ elements.itemForm?.addEventListener("submit", async (event) => {
 
 elements.resetItemForm?.addEventListener("click", resetItemForm);
 
+// ОБНОВЛЕНО: async-обработчик
 elements.catalogGrid?.addEventListener("click", async (event) => {
   const addButton = event.target.closest("[data-add-id]");
   if (addButton) {
     event.stopPropagation();
-    addToCart(addButton.dataset.addId);
+    await addToCart(addButton.dataset.addId);
     return;
   }
 
@@ -1186,9 +1118,7 @@ elements.catalogGrid?.addEventListener("click", async (event) => {
 
   if (editButton) {
     const id = Number(editButton.dataset.editId);
-    if (!Number.isFinite(id) || id <= 0) {
-      return;
-    }
+    if (!Number.isFinite(id) || id <= 0) return;
 
     if (!isAdminUser()) {
       setStatus(elements.itemStatus, "Редактирование доступно только администратору.", true);
@@ -1211,12 +1141,9 @@ elements.catalogGrid?.addEventListener("click", async (event) => {
 
   if (deleteButton) {
     const id = Number(deleteButton.dataset.deleteId);
-
     try {
       const response = await request(`/api/items/${id}`, { method: "DELETE" });
-      if (state.editingItemId === id) {
-        resetItemForm();
-      }
+      if (state.editingItemId === id) resetItemForm();
       await loadPopularItems();
       await loadCatalog(elements.searchInput.value.trim());
       setStatus(elements.itemStatus, response.message);
@@ -1232,32 +1159,36 @@ elements.catalogGrid?.addEventListener("click", async (event) => {
   }
 });
 
-elements.popularGrid?.addEventListener("click", (event) => {
+// ОБНОВЛЕНО: async-обработчик
+elements.popularGrid?.addEventListener("click", async (event) => {
   const addButton = event.target.closest("[data-add-id]");
   if (addButton) {
     event.stopPropagation();
-    addToCart(addButton.dataset.addId);
+    await addToCart(addButton.dataset.addId);
     return;
   }
 
   const card = event.target.closest("[data-view-id]");
-  if (!card) {
-    return;
-  }
+  if (!card) return;
+  
   const item = findItemById(card.dataset.viewId);
   openItemDetails(item);
 });
 
 elements.catalogGrid?.addEventListener("keydown", handleFoodCardKeydown);
-  elements.popularGrid?.addEventListener("keydown", handleFoodCardKeydown);
+elements.popularGrid?.addEventListener("keydown", handleFoodCardKeydown);
 
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeItemDetailsModal();
-  }
+  if (event.key === "Escape") closeItemDetailsModal();
 });
 
 async function init() {
+  try {
+    await loadCurrentUser();
+  } catch (error) {
+    console.error("Не удалось загрузить данные пользователя:", error);
+  }
+
   applyRouteLayout();
 
   if (isResetPasswordRoute()) {
@@ -1280,7 +1211,7 @@ async function init() {
   }
 
   try {
-    await Promise.all([loadPopularItems(), loadCatalog(), loadCurrentUser()]);
+    await Promise.all([loadPopularItems(), loadCatalog()]);
     setStatus(elements.itemStatus, "");
   } catch (error) {
     setStatus(elements.itemStatus, error.message, true);
@@ -1290,12 +1221,8 @@ async function init() {
     elements.sortSelect.addEventListener("change", () => {
       const sortMode = elements.sortSelect.value;
       const sortedItems = applySortingToItems(state.items, sortMode);
-      if (elements.catalogGrid) {
-        elements.catalogGrid.innerHTML = "";
-      }
-      if (sortedItems.length) {
-        renderGrid(elements.catalogGrid, sortedItems, isAdminUser());
-      }
+      if (elements.catalogGrid) elements.catalogGrid.innerHTML = "";
+      if (sortedItems.length) renderGrid(elements.catalogGrid, sortedItems, isAdminUser());
     });
   }
 
