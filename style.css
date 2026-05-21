@@ -764,18 +764,23 @@ body.route-auth .forgot-password-button {
 
 @media (max-width: 900px) {
   .topbar {
-    border-radius: 28px;
-  }
-
-  .topbar,
-  .nav {
+    border-radius: 24px;
     flex-direction: column;
     align-items: stretch;
+    padding: 16px;
   }
 
   .nav {
-    justify-content: center;
-    text-align: center;
+    flex-direction: row;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 16px;
+    scrollbar-width: none;
+  }
+  
+  .nav::-webkit-scrollbar {
+    display: none;
   }
 
   .hero,
@@ -789,7 +794,8 @@ body.route-auth .forgot-password-button {
 
   .section-heading {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   .hero-content h1 {
@@ -838,12 +844,45 @@ body.route-auth .forgot-password-button {
     grid-template-columns: 1fr;
   }
 
-  .item-modal-image {
-    height: 220px;
-  }
-
   .hero-content h1 {
     font-size: 2.15rem;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .primary-button, 
+  .secondary-button, 
+  .ghost-button {
+    width: 100%;
+  }
+
+  .item-modal {
+    padding: 0; 
+  }
+
+  .item-modal-card {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .item-modal-image {
+    height: 280px;
+    border-radius: 0 0 24px 24px;
+    margin-bottom: 16px;
+  }
+
+  .item-modal-close {
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
 
   body.route-auth .auth-card {
@@ -861,5 +900,45 @@ body.route-auth .forgot-password-button {
 
   body.route-auth .auth-switch-link {
     flex: 1 1 0;
+  }
+}
+
+@media (max-width: 640px) {
+  #cartContent > div:has(img) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+
+#cartContent > div:has(img) img {
+  width: 60px !important;
+  height: 60px !important;
+  object-fit: cover !important;
+  border-radius: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+#cartContent > div:has(img) h3,
+#cartContent > div:has(img) p {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
+  min-width: 0;
+}
+
+  #cartContent > div:has(img) > div:has(button) {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  #cartContent > div:has(img) button,
+  #cartContent > div:has(img) .primary-button,
+  #cartContent > div:has(img) .secondary-button,
+  #cartContent > div:has(img) .ghost-button {
+    width: 100% !important;
+    margin: 0 !important;
   }
 }
