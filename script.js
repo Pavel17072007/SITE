@@ -54,7 +54,8 @@ const elements = {
   likedItemsGrid: document.getElementById("likedItemsGrid"),
   // Элементы корзины
   floatingCart: null,
-  cartSection: null,
+  cartSection: document.getElementById("cartSection"),
+  cartContent: document.getElementById("cartContent"),
 };
 
 function setStatus(node, message, isError = false) {
@@ -225,6 +226,7 @@ function applyRouteLayout() {
     showSection(elements.auth, true);
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
+    showSection(elements.cartSection, false);
     setAuthMode({
       eyebrow: "Аккаунт",
       title: "Вход",
@@ -244,6 +246,7 @@ function applyRouteLayout() {
     showSection(elements.auth, true);
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
+    showSection(elements.cartSection, false);
     setAuthMode({
       eyebrow: "Аккаунт",
       title: "Регистрация",
@@ -263,6 +266,7 @@ function applyRouteLayout() {
     showSection(elements.auth, false);
     showSection(elements.profileSection, true);
     showSection(elements.adminSection, false);
+    showSection(elements.cartSection, false);
     syncAdminSectionVisibility();
     return;
   }
@@ -275,6 +279,7 @@ function applyRouteLayout() {
     showSection(elements.auth, true);
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
+    showSection(elements.cartSection, false);
     setAuthMode({
       eyebrow: "Восстановление",
       title: "Сброс пароля",
@@ -295,6 +300,7 @@ function applyRouteLayout() {
     showSection(elements.auth, false);
     showSection(elements.profileSection, false);
     showSection(elements.adminSection, false);
+    showSection(elements.cartSection, true);
     renderCartPageContent();
     return;
   }
@@ -306,6 +312,7 @@ function applyRouteLayout() {
   showSection(elements.auth, false);
   showSection(elements.profileSection, false);
   showSection(elements.adminSection, false);
+  showSection(elements.cartSection, false);
   setAuthMode({
     eyebrow: "Аккаунт",
     title: "Регистрация и вход",
@@ -852,7 +859,7 @@ function updateCartFloatingButton() {
 }
 
 function renderCartPageContent() {
-  const cartContentEl = document.getElementById("cartContent");
+  const cartContentEl = elements.cartContent;
   if (!cartContentEl) return;
   
   const cart = JSON.parse(localStorage.getItem("flashfood_cart") || "[]");
